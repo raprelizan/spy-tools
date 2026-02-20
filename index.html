@@ -163,9 +163,17 @@
     .title { font-weight:650; line-height:1.35; }
     .badges { display:flex; flex-wrap:wrap; gap:6px; }
     .badge { font-size:.72rem; padding:4px 8px; border-radius:999px; background: rgba(111,140,255,.17); border: 1px solid rgba(130,156,255,.35); }
+    .badge.active { background: rgba(82,214,128,.2); border-color: rgba(82,214,128,.5); color:#9ef0ba; font-weight:700; }
+    .badge.inactive { background: rgba(255,106,132,.18); border-color: rgba(255,106,132,.45); color:#ffd0da; font-weight:700; }
     .text { font-size:.88rem; line-height:1.45; max-height:44px; overflow:hidden; white-space:pre-wrap; transition:max-height .2s ease; }
     .text.expanded { max-height:420px; }
     .kv { font-size:.82rem; color:#c8d4ff; }
+    .lifecycle { display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:700; }
+    .lifecycle .days { font-size:1.1rem; color:#7ff0a8; }
+    .lifecycle .state { font-size:1rem; }
+    .lifecycle .state.active { color:#66e895; }
+    .lifecycle .state.inactive { color:#ff9cae; }
+    .card-actions button:disabled { opacity:.45; cursor:not-allowed; transform:none; }
     .card-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
 
     .pagination { display:flex; justify-content:center; align-items:center; gap:10px; margin:14px 0 4px; }
@@ -465,14 +473,16 @@
     }
 
     function detectMediaType(ad) {
-      const mediaUrl = safeGet(ad, "creative.media_url", "") || safeGet(ad, "image", "") || safeGet(ad, "video", "");
-      const explicit = String(safeGet(ad, "format", "")).toLowerCase();
-      if (explicit.includes("video")) return "video";
+      const mediaUrl = String(firstValue(ad, [
+        "creative.media_url", "video", "creative.video_url", "snapshot.videos.0.url", "image", "creative.image_url", "snapshot.images.0.url", "thumbnail_url"
+      ], "")).toLowerCase();
+      const explicit = String(firstValue(ad, ["format", "ad_format", "creative_type", "media_type"], "")).toLowerCase();
+      const hasVideoField = !!(safeGet(ad, "video", "") || safeGet(ad, "creative.video_url", "") || safeGet(ad, "snapshot.videos.0.url", "") || safeGet(ad, "videos.0.url", ""));
+      if (explicit.includes("video") || hasVideoField) return "video";
+      if (explicit.includes("carousel") || parseArray(ad.carousel_images).length > 1 || parseArray(safeGet(ad, "snapshot.cards", [])).length > 1) return "carousel";
       if (explicit.includes("image")) return "image";
-      if (explicit.includes("carousel")) return "carousel";
-      if (/\.(mp4|webm|mov)($|\?)/i.test(mediaUrl)) return "video";
+      if (/\.(mp4|webm|mov|m3u8)($|\?)/i.test(mediaUrl)) return "video";
       if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)($|\?)/i.test(mediaUrl)) return "image";
-      if (parseArray(ad.carousel_images).length > 1) return "carousel";
       return "image";
     }
 
@@ -505,6 +515,35 @@
       }
       return String(value);
     }
+    function cleanText(value) {
+      const text = String(value ?? "").replace(/\{\{[^}]+\}\}/g, "").replace(/\s+/g, " ").trim();
+      return text;
+    }
+
+    function toNumberLike(value) {
+      if (value === null || value === undefined || value === "") return null;
+      if (typeof value === "number") return value;
+      const str = String(value);
+      const nums = str.replace(/,/g, "").match(/-?\d+(\.\d+)?/g);
+      if (!nums) return null;
+      return Number(nums[nums.length - 1]);
+    }
+
+    function normalizeMetric(value) {
+      const n = toNumberLike(value);
+      if (n === null || Number.isNaN(n)) return "N/A";
+      return n.toLocaleString();
+    }
+
+    function daysBetween(start, end) {
+      const s = Date.parse(start);
+      if (Number.isNaN(s)) return null;
+      const e = Date.parse(end);
+      const to = Number.isNaN(e) ? Date.now() : e;
+      const days = Math.max(1, Math.ceil((to - s) / 86400000));
+      return days;
+    }
+
 
     function extractAdsFromPayload(payload) {
       const directArrays = [
@@ -548,13 +587,13 @@
         "ad_id", "id", "ad_archive_id", "archive_id", "snapshot.ad_id", "snapshot.id", "ad.id", "result_id"
       ], crypto.randomUUID()));
 
-      const title = String(firstValue(raw, [
-        "ad_title", "title", "creative.title", "snapshot.title", "ad.title", "snapshot.page_name", "page_name"
-      ], "")).trim();
+      const title = cleanText(firstValue(raw, [
+        "ad_title", "title", "creative.title", "snapshot.title", "ad.title", "snapshot.page_name", "page_name", "headline"
+      ], ""));
 
-      const text = String(firstValue(raw, [
-        "ad_text", "text", "creative.body", "creative.caption", "snapshot.body.text", "snapshot.caption", "ad_creative_body", "message"
-      ], "")).trim();
+      const text = cleanText(firstValue(raw, [
+        "ad_text", "text", "creative.body", "creative.caption", "snapshot.body.text", "snapshot.caption", "ad_creative_body", "message", "description"
+      ], ""));
 
       const advertiserName = String(firstValue(raw, [
         "advertiser.name", "advertiser_name", "page_name", "snapshot.page_name", "ad.advertiser_name"
@@ -565,32 +604,39 @@
       ], "N/A"));
 
       const mediaUrl = normalizeUrl(firstValue(raw, [
-        "creative.media_url", "creative.image_url", "creative.video_url", "image", "video", "thumbnail_url", "snapshot.images.0.url", "snapshot.videos.0.url", "snapshot.cards.0.image_url"
+        "creative.media_url", "creative.video_url", "video", "snapshot.videos.0.url", "videos.0.url", "creative.image_url", "image", "snapshot.images.0.url", "snapshot.cards.0.image_url", "thumbnail_url"
       ], ""));
+      const thumbnailUrl = normalizeUrl(firstValue(raw, ["thumbnail_url", "snapshot.images.0.url", "creative.image_url", "image"], "N/A"));
 
       const startDate = firstValue(raw, ["start_date", "ad.start_date", "snapshot.start_date", "ad_delivery_start_time"], "N/A");
       const endDate = firstValue(raw, ["end_date", "ad.end_date", "snapshot.end_date", "ad_delivery_stop_time"], "N/A");
 
-      const spend = firstValue(raw, ["estimated_spend", "spend", "spend_range", "insights.spend", "spend.upper_bound"], "N/A");
-      const impressions = firstValue(raw, ["estimated_impressions", "impressions", "impressions_range", "insights.impressions", "impressions.upper_bound"], "N/A");
+      const spend = normalizeMetric(firstValue(raw, ["estimated_spend", "spend", "spend_range", "insights.spend", "spend.upper_bound", "spend.lower_bound", "spend.min", "spend.max"], "N/A"));
+      const impressions = normalizeMetric(firstValue(raw, ["estimated_impressions", "impressions", "impressions_range", "insights.impressions", "impressions.upper_bound", "impressions.lower_bound", "reach"], "N/A"));
 
       const cta = firstValue(raw, ["cta", "call_to_action", "snapshot.cta_text", "cta_type", "snapshot.cards.0.cta_text"], "N/A");
 
       const landingPage = normalizeUrl(firstValue(raw, [
-        "landing_page", "url", "destination_url", "final_url", "snapshot.link_url", "snapshot.cards.0.link_url", "call_to_action.url"
+        "landing_page", "url", "destination_url", "final_url", "snapshot.link_url", "snapshot.cards.0.link_url", "call_to_action.url", "cta_url"
       ], "N/A"));
 
-      const libraryLink = normalizeUrl(firstValue(raw, [
-        "ad_library_link", "library_url", "snapshot.ad_library_url", "ad_archive_url"
+      let libraryLink = normalizeUrl(firstValue(raw, [
+        "ad_library_link", "library_url", "snapshot.ad_library_url", "ad_archive_url", "ad_archive_link"
       ], "N/A"));
+      if (libraryLink === "N/A" && /^\d+$/.test(adId)) {
+        libraryLink = platform === "tiktok_ads"
+          ? `https://library.tiktok.com/ads/detail/${adId}`
+          : `https://www.facebook.com/ads/library/?id=${adId}`;
+      }
 
       const rawStatus = String(firstValue(raw, ["status", "ad_status", "delivery_status", "snapshot.status"], "unknown")).toLowerCase();
       const isActive = firstValue(raw, ["is_active", "active"], null);
       const status = isActive === true ? "active" : isActive === false ? "inactive" : (rawStatus.includes("active") ? "active" : rawStatus.includes("inactive") ? "inactive" : "unknown");
 
-      const countries = toCountryText(firstValue(raw, ["country_targeting", "countries", "targeted_countries", "snapshot.country"], "N/A"));
+      const countries = toCountryText(firstValue(raw, ["country_targeting", "countries", "targeted_countries", "snapshot.country", "country_codes", "targeting.countries"], "N/A"));
       const resolvedTitle = title || (text ? text.slice(0, 70) : `Ad ${adId.slice(0, 8)}`);
-      const resolvedText = text || String(firstValue(raw, ["body", "description"], "N/A"));
+      const resolvedText = text || cleanText(firstValue(raw, ["body", "description"], "N/A"));
+      const daysLive = daysBetween(startDate, status === "active" ? null : endDate);
 
       return {
         adId,
@@ -599,6 +645,7 @@
         advertiserName,
         advertiserLink,
         mediaUrl: mediaUrl === "N/A" ? "" : mediaUrl,
+        thumbnailUrl: thumbnailUrl === "N/A" ? "" : thumbnailUrl,
         startDate,
         endDate,
         countries,
@@ -608,6 +655,7 @@
         platform,
         cta,
         status,
+        daysLive: daysLive ?? "N/A",
         landingPage,
         libraryLink,
         format: detectMediaType(raw)
@@ -687,10 +735,13 @@
     function applyFilters(data) {
       const format = dom.adFormat.value;
       const activeOnly = dom.activeOnly.value === "active";
+      const q = dom.keyword.value.trim().toLowerCase();
       return data.filter((ad) => {
         const formatMatch = !format || ad.format === format;
         const activeMatch = !activeOnly || ad.status === "active";
-        return formatMatch && activeMatch;
+        const haystack = `${ad.title} ${ad.text} ${ad.advertiserName}`.toLowerCase();
+        const keywordMatch = !q || haystack.includes(q);
+        return formatMatch && activeMatch && keywordMatch;
       });
     }
 
@@ -742,11 +793,16 @@
     }
 
     function renderMedia(ad) {
-      if (!ad.mediaUrl) return `<div style="color:var(--muted)">No preview available</div>`;
+      if (!ad.mediaUrl && !ad.thumbnailUrl) return `<div style="color:var(--muted)">No preview available</div>`;
       if (ad.format === "video") {
-        return `<video controls preload="none" loading="lazy" src="${escapeHtml(ad.mediaUrl)}"></video>`;
+        if (ad.mediaUrl) {
+          return `<video controls muted playsinline preload="metadata" poster="${escapeHtml(ad.thumbnailUrl || "")}" src="${escapeHtml(ad.mediaUrl)}"></video>`;
+        }
+        if (ad.thumbnailUrl) {
+          return `<img loading="lazy" src="${escapeHtml(ad.thumbnailUrl)}" alt="Video thumbnail" />`;
+        }
       }
-      return `<img loading="lazy" src="${escapeHtml(ad.mediaUrl)}" alt="Ad creative" />`;
+      return `<img loading="lazy" src="${escapeHtml(ad.mediaUrl || ad.thumbnailUrl)}" alt="Ad creative" />`;
     }
 
     function paginate() {
@@ -779,10 +835,11 @@
             <div class="badges">
               <span class="badge">${escapeHtml(ad.platform)}</span>
               <span class="badge">${escapeHtml(ad.format)}</span>
-              <span class="badge">${escapeHtml(ad.status)}</span>
+              <span class="badge ${escapeHtml(ad.status)}">${escapeHtml(ad.status)}</span>
             </div>
             <div class="text">${escapeHtml(ad.text)}</div>
-            <div class="kv">Advertiser: ${escapeHtml(ad.advertiserName)}</div>
+            <div class="kv" style="font-size:.95rem;color:#dce5ff">Advertiser: ${escapeHtml(ad.advertiserName)}</div>
+            <div class="lifecycle"><span class="state ${escapeHtml(ad.status)}">${ad.status === "active" ? "ACTIVE" : ad.status.toUpperCase()}</span><span class="days">${escapeHtml(ad.daysLive)} days</span></div>
             <div class="kv">Start: ${escapeHtml(ad.startDate)} · End: ${escapeHtml(ad.endDate)}</div>
             <div class="kv">Countries: ${escapeHtml(ad.countries)} · Spend: ${escapeHtml(ad.estimatedSpend)} · Impr: ${escapeHtml(ad.estimatedImpressions)}</div>
             <div class="kv">CTA: ${escapeHtml(ad.cta)} · Ad ID: ${escapeHtml(ad.adId)}</div>
@@ -800,15 +857,16 @@
 
     function toCsv(results) {
       const columns = [
-        "ad_title", "ad_text", "advertiser_name", "advertiser_page_link", "ad_creative", "ad_start_date", "ad_end_date",
+        "ad_title", "ad_text", "advertiser_name", "advertiser_page_link", "ad_creative", "ad_start_date", "ad_end_date", "days_live",
         "country_targeting", "estimated_spend", "estimated_impressions", "ad_id", "platform", "cta", "ad_status", "landing_page_link", "ad_library_link"
       ];
-      const esc = (value) => `"${String(value ?? "N/A").replaceAll('"', '""')}"`;
+      const normalizeCell = (value) => String(value ?? "N/A").replace(/\r?\n|\r/g, " ").trim();
+      const esc = (value) => `"${normalizeCell(value).replaceAll('"', '""')}"`;
       const rows = results.map((ad) => [
-        ad.title, ad.text, ad.advertiserName, ad.advertiserLink, ad.mediaUrl, ad.startDate, ad.endDate,
+        ad.title, ad.text, ad.advertiserName, ad.advertiserLink, ad.mediaUrl || ad.thumbnailUrl, ad.startDate, ad.endDate, ad.daysLive,
         ad.countries, ad.estimatedSpend, ad.estimatedImpressions, ad.adId, ad.platform, ad.cta, ad.status, ad.landingPage, ad.libraryLink
       ].map(esc).join(","));
-      return [columns.join(","), ...rows].join("\n");
+      return "\uFEFF" + [columns.join(","), ...rows].join("\r\n");
     }
 
     function downloadCsv() {
