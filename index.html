@@ -472,18 +472,69 @@
       setStatus("API key updated successfully.");
     }
 
-    function detectMediaType(ad) {
-      const mediaUrl = String(firstValue(ad, [
-        "creative.media_url", "video", "creative.video_url", "snapshot.videos.0.url", "image", "creative.image_url", "snapshot.images.0.url", "thumbnail_url"
-      ], "")).toLowerCase();
+    function detectMediaType(ad, mediaHint = "") {
       const explicit = String(firstValue(ad, ["format", "ad_format", "creative_type", "media_type"], "")).toLowerCase();
-      const hasVideoField = !!(safeGet(ad, "video", "") || safeGet(ad, "creative.video_url", "") || safeGet(ad, "snapshot.videos.0.url", "") || safeGet(ad, "videos.0.url", ""));
-      if (explicit.includes("video") || hasVideoField) return "video";
+      const hint = String(mediaHint || "").toLowerCase();
+      if (hint) return hint;
+      if (explicit.includes("video")) return "video";
       if (explicit.includes("carousel") || parseArray(ad.carousel_images).length > 1 || parseArray(safeGet(ad, "snapshot.cards", [])).length > 1) return "carousel";
       if (explicit.includes("image")) return "image";
-      if (/\.(mp4|webm|mov|m3u8)($|\?)/i.test(mediaUrl)) return "video";
-      if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)($|\?)/i.test(mediaUrl)) return "image";
       return "image";
+    }
+
+    function extractMediaAssets(raw) {
+      const candidates = [];
+      const seen = new Set();
+
+      function push(kind, value) {
+        const url = normalizeUrl(value);
+        if (!url || url === "N/A") return;
+        if (!/^https?:\/\//i.test(url)) return;
+        if (seen.has(url)) return;
+        seen.add(url);
+        candidates.push({ kind, url });
+      }
+
+      const directVideo = firstValue(raw, [
+        "video", "creative.video_url", "snapshot.videos.0.url", "videos.0.url", "assets.video.url", "media.video.url", "video_url"
+      ], "");
+      const directImage = firstValue(raw, [
+        "image", "creative.image_url", "snapshot.images.0.url", "snapshot.cards.0.image_url", "thumbnail_url", "image_url", "assets.image.url", "media.image.url"
+      ], "");
+      push("video", directVideo);
+      push("image", directImage);
+
+      function walk(node, depth = 0, keyHint = "") {
+        if (!node || depth > 5) return;
+        if (typeof node === "string") {
+          const val = node.trim();
+          if (!/^https?:\/\//i.test(val)) return;
+          const key = keyHint.toLowerCase();
+          const isVideo = /video|mp4|webm|m3u8|mov/.test(key) || /\.(mp4|webm|mov|m3u8)(\?|$)/i.test(val);
+          const isImage = /image|thumb|poster|photo|jpeg|jpg|png|webp|gif/.test(key) || /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(val);
+          push(isVideo ? "video" : (isImage ? "image" : "image"), val);
+          return;
+        }
+        if (Array.isArray(node)) {
+          node.forEach((item) => walk(item, depth + 1, keyHint));
+          return;
+        }
+        if (typeof node === "object") {
+          Object.entries(node).forEach(([k, v]) => walk(v, depth + 1, k));
+        }
+      }
+
+      walk(raw);
+
+      const videoCandidate = candidates.find((c) => c.kind === "video");
+      const imageCandidate = candidates.find((c) => c.kind === "image");
+      const media = videoCandidate || imageCandidate || null;
+
+      return {
+        mediaUrl: media?.url || "",
+        mediaKind: media?.kind || "image",
+        thumbnailUrl: imageCandidate?.url || ""
+      };
     }
 
     function firstValue(raw, paths, fallback = "N/A") {
@@ -603,10 +654,7 @@
         "advertiser.page_link", "page_link", "advertiser.url", "advertiser_link", "page_url", "snapshot.page_profile_uri"
       ], "N/A"));
 
-      const mediaUrl = normalizeUrl(firstValue(raw, [
-        "creative.media_url", "creative.video_url", "video", "snapshot.videos.0.url", "videos.0.url", "creative.image_url", "image", "snapshot.images.0.url", "snapshot.cards.0.image_url", "thumbnail_url"
-      ], ""));
-      const thumbnailUrl = normalizeUrl(firstValue(raw, ["thumbnail_url", "snapshot.images.0.url", "creative.image_url", "image"], "N/A"));
+      const mediaAssets = extractMediaAssets(raw);
 
       const startDate = firstValue(raw, ["start_date", "ad.start_date", "snapshot.start_date", "ad_delivery_start_time"], "N/A");
       const endDate = firstValue(raw, ["end_date", "ad.end_date", "snapshot.end_date", "ad_delivery_stop_time"], "N/A");
@@ -644,8 +692,8 @@
         text: resolvedText,
         advertiserName,
         advertiserLink,
-        mediaUrl: mediaUrl === "N/A" ? "" : mediaUrl,
-        thumbnailUrl: thumbnailUrl === "N/A" ? "" : thumbnailUrl,
+        mediaUrl: mediaAssets.mediaUrl,
+        thumbnailUrl: mediaAssets.thumbnailUrl,
         startDate,
         endDate,
         countries,
@@ -658,7 +706,7 @@
         daysLive: daysLive ?? "N/A",
         landingPage,
         libraryLink,
-        format: detectMediaType(raw)
+        format: detectMediaType(raw, mediaAssets.mediaKind)
       };
     }
 
@@ -932,7 +980,7 @@
     async function searchAds() {
       try {
         setLoading(true);
-        setStatus("Searching ads...");
+        setStatus(`Searching ads${dom.country.value === "DZ" ? " in Algeria (DZ)" : ""}...`);
 
         state.lastQuery = {
           keyword: dom.keyword.value.trim(),
