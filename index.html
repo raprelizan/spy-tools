@@ -252,7 +252,7 @@
           <div class="field">
             <label for="platform">Platform</label>
             <select id="platform">
-              <option value="facebook_ads">facebook_ads</option>
+              <option value="meta_ads">meta_ads</option>
               <option value="tiktok_ads">tiktok_ads</option>
             </select>
           </div>
@@ -260,26 +260,6 @@
             <label for="country">Country (ISO)</label>
             <select id="country">
               <option value="">All countries</option>
-              <option value="US">United States (US)</option>
-              <option value="GB">United Kingdom (GB)</option>
-              <option value="CA">Canada (CA)</option>
-              <option value="AU">Australia (AU)</option>
-              <option value="AE">United Arab Emirates (AE)</option>
-              <option value="SA">Saudi Arabia (SA)</option>
-              <option value="EG">Egypt (EG)</option>
-              <option value="MA">Morocco (MA)</option>
-              <option value="FR">France (FR)</option>
-              <option value="DE">Germany (DE)</option>
-              <option value="IT">Italy (IT)</option>
-              <option value="ES">Spain (ES)</option>
-              <option value="NL">Netherlands (NL)</option>
-              <option value="BR">Brazil (BR)</option>
-              <option value="MX">Mexico (MX)</option>
-              <option value="IN">India (IN)</option>
-              <option value="PK">Pakistan (PK)</option>
-              <option value="ID">Indonesia (ID)</option>
-              <option value="JP">Japan (JP)</option>
-              <option value="KR">South Korea (KR)</option>
             </select>
           </div>
           <div class="field">
@@ -436,6 +416,37 @@
       localStorage.setItem(key, JSON.stringify(value));
     }
 
+
+    function populateCountries() {
+      const current = dom.country.value;
+      const select = dom.country;
+      const prioritized = ["DZ", "US", "GB", "AE", "SA", "EG", "MA", "FR", "DE", "CA"];
+      const labels = new Intl.DisplayNames(["en"], { type: "region" });
+      let regions = [];
+      if (Intl.supportedValuesOf) {
+        try {
+          regions = Intl.supportedValuesOf("region").filter((code) => code.length === 2);
+        } catch {
+          regions = [];
+        }
+      }
+      if (!regions.length) {
+        regions = ["DZ","US","GB","CA","AU","AE","SA","EG","MA","TN","FR","DE","IT","ES","NL","BE","CH","SE","NO","DK","FI","BR","MX","AR","CL","CO","PE","IN","PK","ID","MY","SG","TH","PH","VN","JP","KR","CN","TR","ZA","NG","KE"];
+      }
+      const unique = [...new Set([...prioritized, ...regions])].sort((a,b) => {
+        const pa = prioritized.indexOf(a);
+        const pb = prioritized.indexOf(b);
+        if (pa !== -1 || pb !== -1) return (pa === -1 ? 999 : pa) - (pb === -1 ? 999 : pb);
+        return a.localeCompare(b);
+      });
+      select.innerHTML = '<option value="">All countries</option>' + unique.map((code) => {
+        const name = labels.of(code) || code;
+        return `<option value="${code}">${name} (${code})</option>`;
+      }).join("");
+      if (current) select.value = current;
+      if (!select.value) select.value = "";
+    }
+
     function loadApiKey() {
       const saved = localStorage.getItem(STORAGE_KEYS.apiKey);
       state.apiKey = saved || DEFAULT_API_KEY;
@@ -519,10 +530,11 @@
     }
 
     function getEngineCandidates(platformValue) {
-      if (platformValue === "tiktok_ads") {
-        return ["tiktok_ads", "tiktok", "tiktok_search", "tiktok_ads_search"];
-      }
-      return [platformValue];
+      const map = {
+        meta_ads: ["meta_ads", "facebook_ads", "meta_ad_library", "meta_ads_library", "facebook_ad_library"],
+        tiktok_ads: ["tiktok_ads", "tiktok_ad_library", "tiktok_ads_library", "tiktok"]
+      };
+      return map[platformValue] || [platformValue];
     }
 
     function buildQueryParams(engineOverride) {
@@ -902,7 +914,7 @@
 
         const item = JSON.parse(button.dataset.history);
         dom.keyword.value = item.keyword || "";
-        dom.platform.value = item.platform || "facebook_ads";
+        dom.platform.value = item.platform || "meta_ads";
         dom.country.value = item.country || "";
         dom.language.value = item.language || "";
         searchAds();
@@ -911,6 +923,7 @@
 
     function init() {
       loadApiKey();
+      populateCountries();
       renderSavedKeywords();
       renderHistory();
       computeStats([]);
