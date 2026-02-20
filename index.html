@@ -476,36 +476,138 @@
       return "image";
     }
 
+    function firstValue(raw, paths, fallback = "N/A") {
+      for (const path of paths) {
+        const value = safeGet(raw, path, null);
+        if (value !== null && value !== undefined && value !== "") return value;
+      }
+      return fallback;
+    }
+
+    function normalizeUrl(value) {
+      if (!value || value === "N/A") return "N/A";
+      const str = String(value).trim();
+      if (!str) return "N/A";
+      if (/^https?:\/\//i.test(str)) return str;
+      if (str.startsWith("//")) return `https:${str}`;
+      return str;
+    }
+
+    function toCountryText(value) {
+      if (!value) return "N/A";
+      if (Array.isArray(value)) {
+        const flat = value.flatMap((item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object") return item.code || item.country || item.name || "";
+          return "";
+        }).map((v) => String(v).trim()).filter(Boolean);
+        return flat.length ? [...new Set(flat)].join(", ") : "N/A";
+      }
+      return String(value);
+    }
+
+    function extractAdsFromPayload(payload) {
+      const directArrays = [
+        payload?.ads,
+        payload?.ad_results,
+        payload?.results,
+        payload?.data,
+        payload?.search_results?.ads,
+        payload?.search_results?.results,
+        payload?.ad_library_results,
+        payload?.inline_ads
+      ].filter(Array.isArray);
+
+      const discovered = [];
+      const visited = new Set();
+      function walk(node, depth = 0) {
+        if (!node || depth > 5) return;
+        if (Array.isArray(node)) {
+          if (!visited.has(node)) {
+            visited.add(node);
+            const hasAdShape = node.some((item) => item && typeof item === "object" && (
+              "ad_id" in item || "id" in item || "ad_archive_id" in item || "snapshot" in item || "creative" in item || "ad_creative_body" in item || "page_name" in item
+            ));
+            if (hasAdShape) discovered.push(node);
+          }
+          node.forEach((item) => walk(item, depth + 1));
+          return;
+        }
+        if (typeof node === "object") {
+          Object.values(node).forEach((val) => walk(val, depth + 1));
+        }
+      }
+      walk(payload);
+
+      const merged = [...directArrays, ...discovered].flat();
+      return merged.filter((item) => item && typeof item === "object");
+    }
+
     function normalizeAd(raw, platform) {
-      const startDate = safeGet(raw, "start_date", safeGet(raw, "ad.start_date", "N/A"));
-      const endDate = safeGet(raw, "end_date", safeGet(raw, "ad.end_date", "N/A"));
-      const mediaUrl = safeGet(raw, "creative.media_url", "") || safeGet(raw, "image", "") || safeGet(raw, "video", "") || safeGet(raw, "creative.image_url", "") || safeGet(raw, "creative.video_url", "");
-      const advertiserLink = safeGet(raw, "advertiser.page_link", "") || safeGet(raw, "page_link", "") || safeGet(raw, "advertiser.url", "");
-      const spend = safeGet(raw, "estimated_spend", safeGet(raw, "spend", null));
-      const impressions = safeGet(raw, "estimated_impressions", safeGet(raw, "impressions", null));
-      const adId = String(safeGet(raw, "ad_id", safeGet(raw, "id", crypto.randomUUID())));
-      const text = safeGet(raw, "ad_text", safeGet(raw, "text", safeGet(raw, "creative.body", "N/A")));
-      const title = safeGet(raw, "ad_title", safeGet(raw, "title", safeGet(raw, "creative.title", "Untitled Ad")));
-      const status = String(safeGet(raw, "status", safeGet(raw, "ad_status", "unknown"))).toLowerCase();
-      const landingPage = safeGet(raw, "landing_page", safeGet(raw, "url", "N/A"));
-      const libraryLink = safeGet(raw, "ad_library_link", safeGet(raw, "library_url", "N/A"));
+      const adId = String(firstValue(raw, [
+        "ad_id", "id", "ad_archive_id", "archive_id", "snapshot.ad_id", "snapshot.id", "ad.id", "result_id"
+      ], crypto.randomUUID()));
+
+      const title = String(firstValue(raw, [
+        "ad_title", "title", "creative.title", "snapshot.title", "ad.title", "snapshot.page_name", "page_name"
+      ], "")).trim();
+
+      const text = String(firstValue(raw, [
+        "ad_text", "text", "creative.body", "creative.caption", "snapshot.body.text", "snapshot.caption", "ad_creative_body", "message"
+      ], "")).trim();
+
+      const advertiserName = String(firstValue(raw, [
+        "advertiser.name", "advertiser_name", "page_name", "snapshot.page_name", "ad.advertiser_name"
+      ], "N/A"));
+
+      const advertiserLink = normalizeUrl(firstValue(raw, [
+        "advertiser.page_link", "page_link", "advertiser.url", "advertiser_link", "page_url", "snapshot.page_profile_uri"
+      ], "N/A"));
+
+      const mediaUrl = normalizeUrl(firstValue(raw, [
+        "creative.media_url", "creative.image_url", "creative.video_url", "image", "video", "thumbnail_url", "snapshot.images.0.url", "snapshot.videos.0.url", "snapshot.cards.0.image_url"
+      ], ""));
+
+      const startDate = firstValue(raw, ["start_date", "ad.start_date", "snapshot.start_date", "ad_delivery_start_time"], "N/A");
+      const endDate = firstValue(raw, ["end_date", "ad.end_date", "snapshot.end_date", "ad_delivery_stop_time"], "N/A");
+
+      const spend = firstValue(raw, ["estimated_spend", "spend", "spend_range", "insights.spend", "spend.upper_bound"], "N/A");
+      const impressions = firstValue(raw, ["estimated_impressions", "impressions", "impressions_range", "insights.impressions", "impressions.upper_bound"], "N/A");
+
+      const cta = firstValue(raw, ["cta", "call_to_action", "snapshot.cta_text", "cta_type", "snapshot.cards.0.cta_text"], "N/A");
+
+      const landingPage = normalizeUrl(firstValue(raw, [
+        "landing_page", "url", "destination_url", "final_url", "snapshot.link_url", "snapshot.cards.0.link_url", "call_to_action.url"
+      ], "N/A"));
+
+      const libraryLink = normalizeUrl(firstValue(raw, [
+        "ad_library_link", "library_url", "snapshot.ad_library_url", "ad_archive_url"
+      ], "N/A"));
+
+      const rawStatus = String(firstValue(raw, ["status", "ad_status", "delivery_status", "snapshot.status"], "unknown")).toLowerCase();
+      const isActive = firstValue(raw, ["is_active", "active"], null);
+      const status = isActive === true ? "active" : isActive === false ? "inactive" : (rawStatus.includes("active") ? "active" : rawStatus.includes("inactive") ? "inactive" : "unknown");
+
+      const countries = toCountryText(firstValue(raw, ["country_targeting", "countries", "targeted_countries", "snapshot.country"], "N/A"));
+      const resolvedTitle = title || (text ? text.slice(0, 70) : `Ad ${adId.slice(0, 8)}`);
+      const resolvedText = text || String(firstValue(raw, ["body", "description"], "N/A"));
 
       return {
         adId,
-        title,
-        text,
-        advertiserName: safeGet(raw, "advertiser.name", safeGet(raw, "advertiser_name", "N/A")),
-        advertiserLink: advertiserLink || "N/A",
-        mediaUrl: mediaUrl || "",
+        title: resolvedTitle,
+        text: resolvedText,
+        advertiserName,
+        advertiserLink,
+        mediaUrl: mediaUrl === "N/A" ? "" : mediaUrl,
         startDate,
         endDate,
-        countries: parseArray(safeGet(raw, "country_targeting", safeGet(raw, "countries", []))).join(", ") || "N/A",
+        countries,
         estimatedSpend: spend ?? "N/A",
         estimatedImpressions: impressions ?? "N/A",
         adIdRaw: adId,
         platform,
-        cta: safeGet(raw, "cta", safeGet(raw, "call_to_action", "N/A")),
-        status: status.includes("active") ? "active" : status.includes("inactive") ? "inactive" : "unknown",
+        cta,
+        status,
         landingPage,
         libraryLink,
         format: detectMediaType(raw)
@@ -687,9 +789,9 @@
             <div class="card-actions">
               <button data-action="toggle">Expand / Collapse</button>
               <button data-action="copy">Copy Ad Text</button>
-              <button data-action="advertiser">Open Advertiser</button>
-              <button data-action="landing">Landing Page</button>
-              <button data-action="library">Ad Library Link</button>
+              <button data-action="advertiser" ${ad.advertiserLink === "N/A" ? "disabled" : ""}>Open Advertiser</button>
+              <button data-action="landing" ${ad.landingPage === "N/A" ? "disabled" : ""}>Landing Page</button>
+              <button data-action="library" ${ad.libraryLink === "N/A" ? "disabled" : ""}>Ad Library Link</button>
             </div>
           </div>
         </article>
@@ -812,13 +914,13 @@
 
         if (lastError) throw new Error(lastError);
 
-        const rawAds = payload?.ads || payload?.results || payload?.data || [];
+        const rawAds = extractAdsFromPayload(payload);
         state.rawResults = uniqueByAdId(rawAds.map((ad) => normalizeAd(ad, dom.platform.value)));
 
         refreshDisplayedResults();
         addHistory(state.lastQuery);
         const fallbackMsg = usedEngine !== dom.platform.value ? ` (engine fallback: ${usedEngine})` : "";
-        setStatus(`Loaded ${state.results.length} ads.${fallbackMsg}`);
+        setStatus(`Loaded ${state.results.length} ads from ${rawAds.length} extracted records.${fallbackMsg}`);
       } catch (error) {
         console.error(error);
         state.rawResults = [];
@@ -879,14 +981,30 @@
         if (action === "toggle") {
           card.querySelector(".text").classList.toggle("expanded");
         } else if (action === "copy") {
-          await navigator.clipboard.writeText(ad.text || "");
-          setStatus("Ad text copied.");
+          try {
+            await navigator.clipboard.writeText(ad.text || "");
+            setStatus("Ad text copied.");
+          } catch {
+            setStatus("Copy failed in this browser context.", true);
+          }
         } else if (action === "advertiser") {
-          if (ad.advertiserLink && ad.advertiserLink !== "N/A") window.open(ad.advertiserLink, "_blank", "noopener");
+          if (ad.advertiserLink && ad.advertiserLink !== "N/A") {
+            window.open(ad.advertiserLink, "_blank", "noopener");
+          } else {
+            setStatus("Advertiser link not available for this ad.", true);
+          }
         } else if (action === "landing") {
-          if (ad.landingPage && ad.landingPage !== "N/A") window.open(ad.landingPage, "_blank", "noopener");
+          if (ad.landingPage && ad.landingPage !== "N/A") {
+            window.open(ad.landingPage, "_blank", "noopener");
+          } else {
+            setStatus("Landing page link not available for this ad.", true);
+          }
         } else if (action === "library") {
-          if (ad.libraryLink && ad.libraryLink !== "N/A") window.open(ad.libraryLink, "_blank", "noopener");
+          if (ad.libraryLink && ad.libraryLink !== "N/A") {
+            window.open(ad.libraryLink, "_blank", "noopener");
+          } else {
+            setStatus("Ad library link not available for this ad.", true);
+          }
         }
       });
 
