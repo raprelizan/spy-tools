@@ -7,7 +7,6 @@
   <style>
     :root {
       --bg: #0b1020;
-      --bg-soft: #121934;
       --card: rgba(20, 28, 52, 0.82);
       --card-border: rgba(169, 186, 255, 0.2);
       --text: #e6ebff;
@@ -15,14 +14,11 @@
       --primary: #6f8cff;
       --accent: #48d8c0;
       --danger: #ff6a84;
-      --warning: #ffba49;
-      --success: #52d680;
       --shadow: 0 20px 35px rgba(4, 8, 25, 0.45);
       --radius: 14px;
     }
 
     * { box-sizing: border-box; }
-
     body {
       margin: 0;
       font-family: Inter, "Segoe UI", Roboto, sans-serif;
@@ -34,12 +30,7 @@
       min-height: 100vh;
     }
 
-    .app {
-      display: grid;
-      grid-template-columns: 290px 1fr;
-      min-height: 100vh;
-    }
-
+    .app { display: grid; grid-template-columns: 290px 1fr; min-height: 100vh; }
     .sidebar {
       border-right: 1px solid rgba(170, 190, 255, 0.15);
       background: rgba(8, 12, 28, 0.75);
@@ -47,92 +38,49 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 22px;
+      gap: 18px;
     }
 
-    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand { display:flex; align-items:center; gap:10px; }
     .brand-logo {
-      width: 42px; height: 42px; border-radius: 12px;
-      display: grid; place-items: center;
+      width: 42px; height:42px; border-radius:12px;
       background: linear-gradient(135deg, #6f8cff, #48d8c0);
-      font-weight: 700; color: #08112b;
+      color:#08112b; font-weight:800; display:grid; place-items:center;
     }
-    .brand h1 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+    .brand h1 { margin:0; font-size:1.05rem; }
     .brand small { color: var(--muted); }
 
     .sidebar-section h3 {
-      margin: 0 0 12px;
-      font-size: 0.85rem;
-      color: #b8c5f5;
-      letter-spacing: 0.08em;
+      margin: 0 0 10px;
+      font-size: .82rem;
+      color:#b8c5f5;
       text-transform: uppercase;
+      letter-spacing: .08em;
     }
 
-    .saved-list, .history-list { display: grid; gap: 8px; max-height: 240px; overflow: auto; }
+    .saved-list, .history-list { display:grid; gap:8px; max-height:220px; overflow:auto; }
     .saved-item, .history-item {
-      background: rgba(111, 140, 255, 0.12);
-      border: 1px solid rgba(132, 158, 255, 0.24);
+      background: rgba(111,140,255,.12);
+      border: 1px solid rgba(132,158,255,.24);
       border-radius: 10px;
       padding: 9px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
     }
 
     .chip-btn, .chip-delete {
-      border: none;
-      cursor: pointer;
-      border-radius: 8px;
-      color: #dfe7ff;
-      background: rgba(255, 255, 255, 0.06);
+      border:none;
+      border-radius:8px;
       padding: 6px 8px;
-      font-size: 0.76rem;
+      font-size:.76rem;
+      cursor:pointer;
+      color:#dfe7ff;
+      background: rgba(255,255,255,.06);
     }
-    .chip-delete { color: #ffd8df; background: rgba(255, 106, 132, 0.2); }
+    .chip-delete { background: rgba(255,106,132,.2); color:#ffd8df; }
 
-    .content { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .content { padding: 20px; display:flex; flex-direction:column; gap:14px; }
 
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      box-shadow: var(--shadow);
-    }
-
-    .topbar h2 { margin: 0; font-size: 1.1rem; }
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-    button, select, input {
-      border: 1px solid rgba(169, 186, 255, 0.25);
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 0.9rem;
-    }
-
-    button { cursor: pointer; transition: all .2s ease; }
-    button:hover { transform: translateY(-1px); filter: brightness(1.05); }
-    .btn-primary {
-      background: linear-gradient(135deg, #6f8cff, #5872ef);
-      border: none;
-      color: #fff;
-      font-weight: 600;
-    }
-    .btn-accent {
-      background: linear-gradient(135deg, #48d8c0, #2cb4a0);
-      border: none;
-      color: #04221d;
-      font-weight: 700;
-    }
-
-    .search-panel, .stats-panel {
+    .panel {
       background: var(--card);
       border: 1px solid var(--card-border);
       border-radius: var(--radius);
@@ -140,122 +88,110 @@
       padding: 14px;
     }
 
-    .search-grid {
-      display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 10px;
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .topbar h2 { margin:0; font-size:1.1rem; }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; }
+
+    button, select, input {
+      border: 1px solid rgba(169,186,255,.25);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: .9rem;
     }
 
-    .field { display: flex; flex-direction: column; gap: 6px; }
-    .field label { font-size: 0.75rem; color: #bcc8f2; text-transform: uppercase; letter-spacing: 0.06em; }
+    button { cursor:pointer; transition: all .2s ease; }
+    button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .btn-primary { background: linear-gradient(135deg, #6f8cff, #5872ef); border:none; color:white; font-weight:700; }
+    .btn-accent { background: linear-gradient(135deg, #48d8c0, #2cb4a0); border:none; color:#04221d; font-weight:800; }
 
+    .api-row { display:grid; grid-template-columns: 1fr auto auto; gap:10px; align-items:end; }
+    .api-field { display:flex; flex-direction:column; gap:6px; }
+    .api-field label { font-size:.75rem; color:#bcc8f2; text-transform:uppercase; letter-spacing:.06em; }
+
+    .search-grid { display:grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap:10px; }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .field label { font-size:.75rem; color:#bcc8f2; text-transform:uppercase; letter-spacing:.06em; }
     .field.keyword { grid-column: span 2; }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 10px;
-    }
+    .status { min-height: 22px; color:#c6d2ff; font-size:.86rem; }
+    .status.error { color:#ffb5c2; }
 
+    .spinner {
+      width:36px; height:36px;
+      border:3px solid rgba(255,255,255,.2);
+      border-top-color: var(--accent);
+      border-radius:50%;
+      animation: spin 1s linear infinite;
+      margin: 18px auto;
+      display:none;
+    }
+    @keyframes spin { to { transform: rotate(360deg);} }
+
+    .stats-grid { display:grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap:10px; }
     .stat {
-      background: rgba(111, 140, 255, 0.1);
-      border: 1px solid rgba(126, 153, 255, 0.24);
+      background: rgba(111, 140, 255, .1);
+      border: 1px solid rgba(126,153,255,.24);
       border-radius: 12px;
       padding: 10px;
     }
-    .stat .label { color: var(--muted); font-size: 0.8rem; }
-    .stat .value { font-size: 1.2rem; font-weight: 700; margin-top: 4px; }
+    .stat .label { color:var(--muted); font-size:.8rem; }
+    .stat .value { font-size:1.15rem; font-weight:700; margin-top:4px; }
 
-    .status { min-height: 22px; color: #c6d2ff; font-size: 0.86rem; }
-    .status.error { color: #ffb5c2; }
-
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid rgba(255,255,255,.2);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 18px auto;
-      display: none;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .results-header { display:flex; justify-content: space-between; align-items:center; gap:10px; }
-
-    .results-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(305px, 1fr));
-      gap: 12px;
-    }
+    .results-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .results-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(305px,1fr)); gap:12px; }
 
     .ad-card {
       border-radius: 12px;
-      background: rgba(17, 25, 49, 0.9);
-      border: 1px solid rgba(155, 177, 255, 0.2);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
+      background: rgba(17,25,49,.9);
+      border:1px solid rgba(155,177,255,.2);
+      overflow:hidden;
       transition: transform .2s ease, border-color .2s ease;
     }
-    .ad-card:hover { transform: translateY(-2px); border-color: rgba(111, 140, 255, 0.55); }
+    .ad-card:hover { transform: translateY(-2px); border-color: rgba(111,140,255,.55); }
+
     .media-wrap {
-      position: relative;
-      background: #0d1430;
       aspect-ratio: 16/9;
-      display: grid;
-      place-items: center;
-      border-bottom: 1px solid rgba(155, 177, 255, 0.2);
+      display:grid; place-items:center;
+      background: #0d1430;
+      border-bottom:1px solid rgba(155,177,255,.2);
     }
+    .media-wrap img, .media-wrap video { width:100%; height:100%; object-fit:cover; }
 
-    .media-wrap img, .media-wrap video { width: 100%; height: 100%; object-fit: cover; }
-
-    .meta { padding: 12px; display:flex; flex-direction:column; gap:8px; }
-    .title { font-weight: 650; line-height: 1.35; }
+    .meta { padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .title { font-weight:650; line-height:1.35; }
     .badges { display:flex; flex-wrap:wrap; gap:6px; }
-    .badge { font-size: .72rem; padding:4px 8px; border-radius:999px; background: rgba(111, 140, 255, 0.17); border: 1px solid rgba(130, 156, 255, 0.35); }
+    .badge { font-size:.72rem; padding:4px 8px; border-radius:999px; background: rgba(111,140,255,.17); border: 1px solid rgba(130,156,255,.35); }
+    .text { font-size:.88rem; line-height:1.45; max-height:44px; overflow:hidden; white-space:pre-wrap; transition:max-height .2s ease; }
+    .text.expanded { max-height:420px; }
+    .kv { font-size:.82rem; color:#c8d4ff; }
+    .card-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
 
-    .text {
-      color: #d6defd;
-      font-size: 0.88rem;
-      line-height: 1.45;
-      max-height: 44px;
-      overflow: hidden;
-      transition: max-height .2s ease;
-      white-space: pre-wrap;
-    }
-    .text.expanded { max-height: 420px; }
-
-    .kv { font-size: 0.82rem; color: #c8d4ff; }
-
-    .card-actions { display:flex; flex-wrap: wrap; gap:8px; margin-top: 6px; }
-
-    .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 14px 0 4px; }
+    .pagination { display:flex; justify-content:center; align-items:center; gap:10px; margin:14px 0 4px; }
 
     .empty {
-      text-align: center;
-      border: 1px dashed rgba(132, 158, 255, 0.35);
-      border-radius: 12px;
-      padding: 20px;
-      color: #9fb1ed;
+      text-align:center;
+      border:1px dashed rgba(132,158,255,.35);
+      border-radius:12px;
+      padding:20px;
+      color:#9fb1ed;
     }
 
-    @media (max-width: 1200px) {
-      .search-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width:1200px) {
+      .search-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
       .field.keyword { grid-column: span 3; }
-      .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .stats-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
     }
-
-    @media (max-width: 900px) {
+    @media (max-width:900px) {
       .app { grid-template-columns: 1fr; }
-      .sidebar { border-right: none; border-bottom: 1px solid rgba(170, 190, 255, 0.15); }
-      .search-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .sidebar { border-right:none; border-bottom:1px solid rgba(170,190,255,.15); }
+      .search-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
       .field.keyword { grid-column: span 2; }
-      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .api-row { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
     }
-
-    @media (max-width: 560px) {
+    @media (max-width:560px) {
       .search-grid, .stats-grid { grid-template-columns: 1fr; }
       .field.keyword { grid-column: span 1; }
     }
@@ -284,7 +220,7 @@
     </aside>
 
     <main class="content">
-      <header class="topbar">
+      <header class="panel topbar">
         <div>
           <h2>Premium Ads Discovery Dashboard</h2>
           <small style="color:var(--muted)">Meta + TikTok ad intelligence from SearchApi.io</small>
@@ -295,7 +231,19 @@
         </div>
       </header>
 
-      <section class="search-panel">
+      <section class="panel">
+        <div class="api-row">
+          <div class="api-field">
+            <label for="apiKeyInput">SearchApi.io API Key</label>
+            <input id="apiKeyInput" type="password" placeholder="Enter your API key" autocomplete="off" />
+          </div>
+          <button id="toggleApiVisibilityBtn" type="button">Show</button>
+          <button id="saveApiKeyBtn" type="button" class="btn-primary">Save API Key</button>
+        </div>
+        <small style="color:var(--muted)">API key is stored locally in your browser (localStorage) and used directly for search requests.</small>
+      </section>
+
+      <section class="panel">
         <form id="searchForm" class="search-grid">
           <div class="field keyword">
             <label for="keyword">Keyword *</label>
@@ -308,8 +256,52 @@
               <option value="tiktok_ads">tiktok_ads</option>
             </select>
           </div>
-          <div class="field"><label for="country">Country (ISO)</label><input id="country" placeholder="US" maxlength="2" /></div>
-          <div class="field"><label for="language">Language</label><input id="language" placeholder="en" /></div>
+          <div class="field">
+            <label for="country">Country (ISO)</label>
+            <select id="country">
+              <option value="">All countries</option>
+              <option value="US">United States (US)</option>
+              <option value="GB">United Kingdom (GB)</option>
+              <option value="CA">Canada (CA)</option>
+              <option value="AU">Australia (AU)</option>
+              <option value="AE">United Arab Emirates (AE)</option>
+              <option value="SA">Saudi Arabia (SA)</option>
+              <option value="EG">Egypt (EG)</option>
+              <option value="MA">Morocco (MA)</option>
+              <option value="FR">France (FR)</option>
+              <option value="DE">Germany (DE)</option>
+              <option value="IT">Italy (IT)</option>
+              <option value="ES">Spain (ES)</option>
+              <option value="NL">Netherlands (NL)</option>
+              <option value="BR">Brazil (BR)</option>
+              <option value="MX">Mexico (MX)</option>
+              <option value="IN">India (IN)</option>
+              <option value="PK">Pakistan (PK)</option>
+              <option value="ID">Indonesia (ID)</option>
+              <option value="JP">Japan (JP)</option>
+              <option value="KR">South Korea (KR)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="language">Language</label>
+            <select id="language">
+              <option value="">All languages</option>
+              <option value="en">English (en)</option>
+              <option value="ar">Arabic (ar)</option>
+              <option value="fr">French (fr)</option>
+              <option value="de">German (de)</option>
+              <option value="es">Spanish (es)</option>
+              <option value="it">Italian (it)</option>
+              <option value="pt">Portuguese (pt)</option>
+              <option value="tr">Turkish (tr)</option>
+              <option value="hi">Hindi (hi)</option>
+              <option value="ur">Urdu (ur)</option>
+              <option value="id">Indonesian (id)</option>
+              <option value="ja">Japanese (ja)</option>
+              <option value="ko">Korean (ko)</option>
+              <option value="zh">Chinese (zh)</option>
+            </select>
+          </div>
           <div class="field"><label for="startDate">Start Date</label><input id="startDate" type="date" /></div>
           <div class="field"><label for="endDate">End Date</label><input id="endDate" type="date" /></div>
           <div class="field">
@@ -353,9 +345,7 @@
         <div id="spinner" class="spinner"></div>
       </section>
 
-      <section class="stats-panel">
-        <div class="stats-grid" id="statsGrid"></div>
-      </section>
+      <section class="panel"><div class="stats-grid" id="statsGrid"></div></section>
 
       <section>
         <div class="results-header">
@@ -373,18 +363,22 @@
   </div>
 
   <script>
-    // 🔐 Insert your SearchApi.io API key below
-    const API_KEY = "REPLACE_WITH_SEARCHAPI_KEY";
+    const DEFAULT_API_KEY = "REPLACE_WITH_SEARCHAPI_KEY";
     const API_URL = "https://www.searchapi.io/api/v1/search";
-    const STORAGE_KEYS = { saved: "spyscope_saved_keywords", history: "spyscope_search_history" };
+    const STORAGE_KEYS = {
+      apiKey: "spyscope_api_key",
+      saved: "spyscope_saved_keywords",
+      history: "spyscope_search_history"
+    };
 
     const state = {
+      apiKey: DEFAULT_API_KEY,
+      rawResults: [],
       results: [],
       currentPage: 1,
       pageSize: 12,
       stats: {},
-      lastQuery: null,
-      loading: false,
+      lastQuery: null
     };
 
     const dom = {
@@ -411,11 +405,14 @@
       nextPage: document.getElementById("nextPage"),
       paginationLabel: document.getElementById("paginationLabel"),
       pageInfo: document.getElementById("pageInfo"),
+      apiKeyInput: document.getElementById("apiKeyInput"),
+      saveApiKeyBtn: document.getElementById("saveApiKeyBtn"),
+      toggleApiVisibilityBtn: document.getElementById("toggleApiVisibilityBtn")
     };
 
     function safeGet(obj, path, fallback = "N/A") {
       try {
-        const value = path.split(".").reduce((acc, k) => acc?.[k], obj);
+        const value = path.split(".").reduce((acc, key) => acc?.[key], obj);
         return value ?? fallback;
       } catch {
         return fallback;
@@ -425,6 +422,35 @@
     function parseArray(input) {
       if (!input) return [];
       return Array.isArray(input) ? input : [input];
+    }
+
+    function getStorage(key) {
+      try {
+        return JSON.parse(localStorage.getItem(key) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function setStorage(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function loadApiKey() {
+      const saved = localStorage.getItem(STORAGE_KEYS.apiKey);
+      state.apiKey = saved || DEFAULT_API_KEY;
+      dom.apiKeyInput.value = state.apiKey.includes("REPLACE") ? "" : state.apiKey;
+    }
+
+    function saveApiKey() {
+      const value = dom.apiKeyInput.value.trim();
+      if (!value) {
+        setStatus("Please enter an API key.", true);
+        return;
+      }
+      state.apiKey = value;
+      localStorage.setItem(STORAGE_KEYS.apiKey, value);
+      setStatus("API key updated successfully.");
     }
 
     function detectMediaType(ad) {
@@ -452,6 +478,7 @@
       const status = String(safeGet(raw, "status", safeGet(raw, "ad_status", "unknown"))).toLowerCase();
       const landingPage = safeGet(raw, "landing_page", safeGet(raw, "url", "N/A"));
       const libraryLink = safeGet(raw, "ad_library_link", safeGet(raw, "library_url", "N/A"));
+
       return {
         adId,
         title,
@@ -464,12 +491,13 @@
         countries: parseArray(safeGet(raw, "country_targeting", safeGet(raw, "countries", []))).join(", ") || "N/A",
         estimatedSpend: spend ?? "N/A",
         estimatedImpressions: impressions ?? "N/A",
+        adIdRaw: adId,
         platform,
         cta: safeGet(raw, "cta", safeGet(raw, "call_to_action", "N/A")),
         status: status.includes("active") ? "active" : status.includes("inactive") ? "inactive" : "unknown",
         landingPage,
         libraryLink,
-        format: detectMediaType(raw),
+        format: detectMediaType(raw)
       };
     }
 
@@ -482,7 +510,6 @@
     }
 
     function setLoading(on) {
-      state.loading = on;
       dom.spinner.style.display = on ? "block" : "none";
     }
 
@@ -494,24 +521,26 @@
     function buildQueryParams() {
       const keyword = dom.keyword.value.trim();
       if (!keyword) throw new Error("Keyword is required.");
-      if (!API_KEY || API_KEY.includes("REPLACE")) throw new Error("Please set your SearchApi.io API key in the API_KEY constant.");
+      if (!state.apiKey || state.apiKey.includes("REPLACE")) {
+        throw new Error("Please set your SearchApi.io API key from the API Key panel.");
+      }
 
       const params = new URLSearchParams({
         engine: dom.platform.value,
         q: keyword,
-        api_key: API_KEY,
-        limit: dom.limit.value,
+        api_key: state.apiKey,
+        limit: dom.limit.value
       });
 
       const optionalMap = {
-        country: dom.country.value.trim().toUpperCase(),
-        language: dom.language.value.trim(),
+        country: dom.country.value,
+        language: dom.language.value,
         start_date: dom.startDate.value,
-        end_date: dom.endDate.value,
+        end_date: dom.endDate.value
       };
 
-      Object.entries(optionalMap).forEach(([key, val]) => {
-        if (val) params.set(key, val);
+      Object.entries(optionalMap).forEach(([key, value]) => {
+        if (value) params.set(key, value);
       });
 
       return params;
@@ -519,24 +548,26 @@
 
     function sortResults(data) {
       const sortBy = dom.sortBy.value;
-      const parseTime = (value) => value && value !== "N/A" ? new Date(value).getTime() : 0;
+      const parseTime = (v) => (v && v !== "N/A") ? new Date(v).getTime() : 0;
       data.sort((a, b) => {
         if (sortBy === "most_active") {
-          const da = a.status === "active" ? 1 : 0;
-          const db = b.status === "active" ? 1 : 0;
-          if (da !== db) return db - da;
+          const sa = a.status === "active" ? 1 : 0;
+          const sb = b.status === "active" ? 1 : 0;
+          if (sa !== sb) return sb - sa;
           return parseTime(b.startDate) - parseTime(a.startDate);
         }
-        return sortBy === "oldest" ? parseTime(a.startDate) - parseTime(b.startDate) : parseTime(b.startDate) - parseTime(a.startDate);
+        return sortBy === "oldest"
+          ? parseTime(a.startDate) - parseTime(b.startDate)
+          : parseTime(b.startDate) - parseTime(a.startDate);
       });
     }
 
     function applyFilters(data) {
       const format = dom.adFormat.value;
       const activeOnly = dom.activeOnly.value === "active";
-      return data.filter((item) => {
-        const formatMatch = !format || item.format === format;
-        const activeMatch = !activeOnly || item.status === "active";
+      return data.filter((ad) => {
+        const formatMatch = !format || ad.format === format;
+        const activeMatch = !activeOnly || ad.status === "active";
         return formatMatch && activeMatch;
       });
     }
@@ -547,29 +578,35 @@
       const imageCount = data.filter((ad) => ad.format === "image").length;
       const spends = data.map((ad) => Number(ad.estimatedSpend)).filter((n) => !Number.isNaN(n));
       const avgSpend = spends.length ? (spends.reduce((a, b) => a + b, 0) / spends.length).toFixed(2) : "N/A";
+
       const countryDist = {};
       data.forEach((ad) => {
-        if (ad.countries && ad.countries !== "N/A") {
+        if (ad.countries !== "N/A") {
           ad.countries.split(",").map((c) => c.trim()).filter(Boolean).forEach((country) => {
             countryDist[country] = (countryDist[country] || 0) + 1;
           });
         }
       });
-      const topCountries = Object.entries(countryDist).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c, count]) => `${c} (${count})`).join(", ") || "N/A";
+      const topCountries = Object.entries(countryDist)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([country, count]) => `${country} (${count})`)
+        .join(", ") || "N/A";
 
-      state.stats = { total: data.length, activeCount, videoCount, imageCount, avgSpend, countries: topCountries };
+      state.stats = { total: data.length, activeCount, videoCount, imageCount, avgSpend, topCountries };
+
       dom.statsGrid.innerHTML = [
         ["Total results", state.stats.total],
         ["Active ads", state.stats.activeCount],
         ["Video ads", state.stats.videoCount],
         ["Image ads", state.stats.imageCount],
-        ["Avg. est. spend", state.stats.avgSpend],
+        ["Avg. est. spend", state.stats.avgSpend]
       ].map(([label, value]) => `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div></div>`).join("");
 
       const countryNode = document.createElement("div");
       countryNode.className = "stat";
       countryNode.style.gridColumn = "1 / -1";
-      countryNode.innerHTML = `<div class="label">Countries distribution (top)</div><div class="value" style="font-size:1rem">${state.stats.countries}</div>`;
+      countryNode.innerHTML = `<div class="label">Countries distribution (top)</div><div class="value" style="font-size:1rem">${state.stats.topCountries}</div>`;
       dom.statsGrid.appendChild(countryNode);
     }
 
@@ -593,12 +630,15 @@
     function paginate() {
       const totalPages = Math.max(1, Math.ceil(state.results.length / state.pageSize));
       if (state.currentPage > totalPages) state.currentPage = totalPages;
+
       const start = (state.currentPage - 1) * state.pageSize;
       const pageData = state.results.slice(start, start + state.pageSize);
+
       dom.pageInfo.textContent = `${state.results.length} ads found`;
       dom.paginationLabel.textContent = `Page ${state.currentPage} / ${totalPages}`;
       dom.prevPage.disabled = state.currentPage <= 1;
       dom.nextPage.disabled = state.currentPage >= totalPages;
+
       return pageData;
     }
 
@@ -608,6 +648,7 @@
         dom.results.innerHTML = `<div class="empty">No ads match your current filters.</div>`;
         return;
       }
+
       dom.results.innerHTML = pageData.map((ad) => `
         <article class="ad-card" data-ad-id="${escapeHtml(ad.adId)}">
           <div class="media-wrap">${renderMedia(ad)}</div>
@@ -660,14 +701,6 @@
       setStatus("CSV exported successfully.");
     }
 
-    function getStorage(key) {
-      try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
-    }
-
-    function setStorage(key, data) {
-      localStorage.setItem(key, JSON.stringify(data));
-    }
-
     function renderSavedKeywords() {
       const items = getStorage(STORAGE_KEYS.saved);
       dom.savedKeywords.innerHTML = items.length ? items.map((word, i) => `
@@ -707,6 +740,15 @@
       renderHistory();
     }
 
+    function refreshDisplayedResults() {
+      const filtered = applyFilters([...state.rawResults]);
+      sortResults(filtered);
+      state.results = filtered;
+      state.currentPage = 1;
+      computeStats(state.results);
+      renderResults();
+    }
+
     async function searchAds() {
       try {
         setLoading(true);
@@ -716,8 +758,8 @@
         state.lastQuery = {
           keyword: dom.keyword.value.trim(),
           platform: dom.platform.value,
-          country: dom.country.value.trim().toUpperCase(),
-          language: dom.language.value.trim(),
+          country: dom.country.value,
+          language: dom.language.value
         };
 
         const response = await fetch(`${API_URL}?${params.toString()}`);
@@ -725,27 +767,21 @@
 
         if (!response.ok) {
           const errText = payload?.error || payload?.message || `HTTP ${response.status}`;
-          if (/quota|limit|credits|429/i.test(errText)) {
-            throw new Error(`Quota exceeded: ${errText}`);
-          }
+          if (/quota|limit|credits|429/i.test(errText)) throw new Error(`Quota exceeded: ${errText}`);
           throw new Error(`Search API error: ${errText}`);
         }
 
         const rawAds = payload.ads || payload.results || payload.data || [];
-        const normalized = uniqueByAdId(rawAds.map((item) => normalizeAd(item, dom.platform.value)));
-        const filtered = applyFilters(normalized);
-        sortResults(filtered);
+        state.rawResults = uniqueByAdId(rawAds.map((ad) => normalizeAd(ad, dom.platform.value)));
 
-        state.results = filtered;
-        state.currentPage = 1;
-        computeStats(state.results);
-        renderResults();
+        refreshDisplayedResults();
         addHistory(state.lastQuery);
         setStatus(`Loaded ${state.results.length} ads.`);
       } catch (error) {
         console.error(error);
+        state.rawResults = [];
         state.results = [];
-        computeStats(state.results);
+        computeStats([]);
         renderResults();
         setStatus(error.message || "Search failed.", true);
       } finally {
@@ -761,6 +797,12 @@
 
       dom.exportCsvBtn.addEventListener("click", downloadCsv);
       dom.saveKeywordBtn.addEventListener("click", saveKeyword);
+      dom.saveApiKeyBtn.addEventListener("click", saveApiKey);
+      dom.toggleApiVisibilityBtn.addEventListener("click", () => {
+        const isPwd = dom.apiKeyInput.type === "password";
+        dom.apiKeyInput.type = isPwd ? "text" : "password";
+        dom.toggleApiVisibilityBtn.textContent = isPwd ? "Hide" : "Show";
+      });
 
       dom.prevPage.addEventListener("click", () => {
         if (state.currentPage > 1) {
@@ -769,8 +811,8 @@
         }
       });
       dom.nextPage.addEventListener("click", () => {
-        const max = Math.max(1, Math.ceil(state.results.length / state.pageSize));
-        if (state.currentPage < max) {
+        const maxPage = Math.max(1, Math.ceil(state.results.length / state.pageSize));
+        if (state.currentPage < maxPage) {
           state.currentPage += 1;
           renderResults();
         }
@@ -778,24 +820,20 @@
 
       [dom.adFormat, dom.activeOnly, dom.sortBy].forEach((node) => {
         node.addEventListener("change", () => {
-          if (!state.results.length) return;
-          state.results = applyFilters(uniqueByAdId(state.results));
-          sortResults(state.results);
-          computeStats(state.results);
-          state.currentPage = 1;
-          renderResults();
+          if (!state.rawResults.length) return;
+          refreshDisplayedResults();
         });
       });
 
       dom.results.addEventListener("click", async (e) => {
-        const btn = e.target.closest("button[data-action]");
-        if (!btn) return;
-        const card = btn.closest(".ad-card");
+        const button = e.target.closest("button[data-action]");
+        if (!button) return;
+        const card = button.closest(".ad-card");
         if (!card) return;
-        const ad = state.results.find((x) => x.adId === card.dataset.adId);
+        const ad = state.results.find((item) => item.adId === card.dataset.adId);
         if (!ad) return;
 
-        const action = btn.dataset.action;
+        const action = button.dataset.action;
         if (action === "toggle") {
           card.querySelector(".text").classList.toggle("expanded");
         } else if (action === "copy") {
@@ -811,26 +849,28 @@
       });
 
       dom.savedKeywords.addEventListener("click", (e) => {
-        const searchBtn = e.target.closest("[data-search-word]");
-        if (searchBtn) {
-          dom.keyword.value = searchBtn.dataset.searchWord;
+        const searchButton = e.target.closest("[data-search-word]");
+        if (searchButton) {
+          dom.keyword.value = searchButton.dataset.searchWord;
           searchAds();
           return;
         }
-        const delBtn = e.target.closest("[data-delete-word]");
-        if (delBtn) {
-          const idx = Number(delBtn.dataset.deleteWord);
+
+        const deleteButton = e.target.closest("[data-delete-word]");
+        if (deleteButton) {
+          const index = Number(deleteButton.dataset.deleteWord);
           const words = getStorage(STORAGE_KEYS.saved);
-          words.splice(idx, 1);
+          words.splice(index, 1);
           setStorage(STORAGE_KEYS.saved, words);
           renderSavedKeywords();
         }
       });
 
       dom.searchHistory.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-history]");
-        if (!btn) return;
-        const item = JSON.parse(btn.dataset.history);
+        const button = e.target.closest("[data-history]");
+        if (!button) return;
+
+        const item = JSON.parse(button.dataset.history);
         dom.keyword.value = item.keyword || "";
         dom.platform.value = item.platform || "facebook_ads";
         dom.country.value = item.country || "";
@@ -840,12 +880,13 @@
     }
 
     function init() {
+      loadApiKey();
       renderSavedKeywords();
       renderHistory();
       computeStats([]);
       renderResults();
       bindEvents();
-      setStatus("Ready. Enter a keyword to start searching ads.");
+      setStatus("Ready. Set your API key then enter a keyword to search.");
     }
 
     init();
