@@ -518,7 +518,15 @@
       dom.status.classList.toggle("error", isError);
     }
 
-    function buildQueryParams() {
+    function getEngineCandidates(platformValue) {
+      if (platformValue === "tiktok_ads") {
+        return ["tiktok_ads", "tiktok", "tiktok_search", "tiktok_ads_search"];
+      }
+      return [platformValue];
+    }
+
+    function buildQueryParams(engineOverride) {
+
       const keyword = dom.keyword.value.trim();
       if (!keyword) throw new Error("Keyword is required.");
       if (!state.apiKey || state.apiKey.includes("REPLACE")) {
@@ -526,7 +534,7 @@
       }
 
       const params = new URLSearchParams({
-        engine: dom.platform.value,
+        engine: engineOverride || dom.platform.value,
         q: keyword,
         api_key: state.apiKey,
         limit: dom.limit.value
@@ -754,7 +762,6 @@
         setLoading(true);
         setStatus("Searching ads...");
 
-        const params = buildQueryParams();
         state.lastQuery = {
           keyword: dom.keyword.value.trim(),
           platform: dom.platform.value,
@@ -762,21 +769,44 @@
           language: dom.language.value
         };
 
-        const response = await fetch(`${API_URL}?${params.toString()}`);
-        const payload = await response.json();
+        const engineCandidates = getEngineCandidates(dom.platform.value);
+        let payload = null;
+        let lastError = null;
+        let usedEngine = dom.platform.value;
 
-        if (!response.ok) {
+        for (const engine of engineCandidates) {
+          const params = buildQueryParams(engine);
+          const response = await fetch(`${API_URL}?${params.toString()}`);
+          payload = await response.json();
+
+          if (response.ok) {
+            usedEngine = engine;
+            lastError = null;
+            break;
+          }
+
           const errText = payload?.error || payload?.message || `HTTP ${response.status}`;
-          if (/quota|limit|credits|429/i.test(errText)) throw new Error(`Quota exceeded: ${errText}`);
+          if (/quota|limit|credits|429/i.test(errText)) {
+            throw new Error(`Quota exceeded: ${errText}`);
+          }
+
+          if (/unsupported engine/i.test(errText) && engine !== engineCandidates[engineCandidates.length - 1]) {
+            lastError = `Search API error: ${errText}`;
+            continue;
+          }
+
           throw new Error(`Search API error: ${errText}`);
         }
 
-        const rawAds = payload.ads || payload.results || payload.data || [];
+        if (lastError) throw new Error(lastError);
+
+        const rawAds = payload?.ads || payload?.results || payload?.data || [];
         state.rawResults = uniqueByAdId(rawAds.map((ad) => normalizeAd(ad, dom.platform.value)));
 
         refreshDisplayedResults();
         addHistory(state.lastQuery);
-        setStatus(`Loaded ${state.results.length} ads.`);
+        const fallbackMsg = usedEngine !== dom.platform.value ? ` (engine fallback: ${usedEngine})` : "";
+        setStatus(`Loaded ${state.results.length} ads.${fallbackMsg}`);
       } catch (error) {
         console.error(error);
         state.rawResults = [];
