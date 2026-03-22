@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpyScope Pro - Ads Intelligence Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: rgba(20, 28, 52, 0.82);
+      --card-border: rgba(169, 186, 255, 0.2);
+      --text: #e6ebff;
+      --muted: #9aa9d8;
+      --primary: #6f8cff;
+      --accent: #48d8c0;
+      --danger: #ff6a84;
+      --shadow: 0 20px 35px rgba(4, 8, 25, 0.45);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px circle at 3% 0%, rgba(114, 89, 240, 0.22), transparent 40%),
+        radial-gradient(900px circle at 90% 8%, rgba(60, 205, 180, 0.16), transparent 35%),
+        linear-gradient(135deg, #090d1d, #0d1430 48%, #11193b);
+      min-height: 100vh;
+    }
+
+    .app { display: grid; grid-template-columns: 290px 1fr; min-height: 100vh; }
+    .sidebar {
+      border-right: 1px solid rgba(170, 190, 255, 0.15);
+      background: rgba(8, 12, 28, 0.75);
+      backdrop-filter: blur(8px);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .brand { display:flex; align-items:center; gap:10px; }
+    .brand-logo {
+      width: 42px; height:42px; border-radius:12px;
+      background: linear-gradient(135deg, #6f8cff, #48d8c0);
+      color:#08112b; font-weight:800; display:grid; place-items:center;
+    }
+    .brand h1 { margin:0; font-size:1.05rem; }
+    .brand small { color: var(--muted); }
+
+    .sidebar-section h3 {
+      margin: 0 0 10px;
+      font-size: .82rem;
+      color:#b8c5f5;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .saved-list, .history-list { display:grid; gap:8px; max-height:220px; overflow:auto; }
+    .saved-item, .history-item {
+      background: rgba(111,140,255,.12);
+      border: 1px solid rgba(132,158,255,.24);
+      border-radius: 10px;
+      padding: 9px;
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+    }
+
+    .chip-btn, .chip-delete {
+      border:none;
+      border-radius:8px;
+      padding: 6px 8px;
+      font-size:.76rem;
+      cursor:pointer;
+      color:#dfe7ff;
+      background: rgba(255,255,255,.06);
+    }
+    .chip-delete { background: rgba(255,106,132,.2); color:#ffd8df; }
+
+    .content { padding: 20px; display:flex; flex-direction:column; gap:14px; }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .topbar h2 { margin:0; font-size:1.1rem; }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; }
+
+    button, select, input {
+      border: 1px solid rgba(169,186,255,.25);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: .9rem;
+    }
+
+    button { cursor:pointer; transition: all .2s ease; }
+    button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .btn-primary { background: linear-gradient(135deg, #6f8cff, #5872ef); border:none; color:white; font-weight:700; }
+    .btn-accent { background: linear-gradient(135deg, #48d8c0, #2cb4a0); border:none; color:#04221d; font-weight:800; }
+
+    .api-row { display:grid; grid-template-columns: 1fr auto auto; gap:10px; align-items:end; }
+    .api-field { display:flex; flex-direction:column; gap:6px; }
+    .api-field label { font-size:.75rem; color:#bcc8f2; text-transform:uppercase; letter-spacing:.06em; }
+
+    .search-grid { display:grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap:10px; }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .field label { font-size:.75rem; color:#bcc8f2; text-transform:uppercase; letter-spacing:.06em; }
+    .field.keyword { grid-column: span 2; }
+
+    .status { min-height: 22px; color:#c6d2ff; font-size:.86rem; }
+    .status.error { color:#ffb5c2; }
+
+    .spinner {
+      width:36px; height:36px;
+      border:3px solid rgba(255,255,255,.2);
+      border-top-color: var(--accent);
+      border-radius:50%;
+      animation: spin 1s linear infinite;
+      margin: 18px auto;
+      display:none;
+    }
+    @keyframes spin { to { transform: rotate(360deg);} }
+
+    .stats-grid { display:grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap:10px; }
+    .stat {
+      background: rgba(111, 140, 255, .1);
+      border: 1px solid rgba(126,153,255,.24);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .stat .label { color:var(--muted); font-size:.8rem; }
+    .stat .value { font-size:1.15rem; font-weight:700; margin-top:4px; }
+
+    .results-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .results-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(305px,1fr)); gap:12px; }
+
+    .ad-card {
+      border-radius: 12px;
+      background: rgba(17,25,49,.9);
+      border:1px solid rgba(155,177,255,.2);
+      overflow:hidden;
+      transition: transform .2s ease, border-color .2s ease;
+    }
+    .ad-card:hover { transform: translateY(-2px); border-color: rgba(111,140,255,.55); }
+
+    .media-wrap {
+      aspect-ratio: 16/9;
+      display:grid; place-items:center;
+      background: #0d1430;
+      border-bottom:1px solid rgba(155,177,255,.2);
+    }
+    .media-wrap img, .media-wrap video { width:100%; height:100%; object-fit:cover; }
+
+    .meta { padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .title { font-weight:650; line-height:1.35; }
+    .badges { display:flex; flex-wrap:wrap; gap:6px; }
+    .badge { font-size:.72rem; padding:4px 8px; border-radius:999px; background: rgba(111,140,255,.17); border: 1px solid rgba(130,156,255,.35); }
+    .badge.active { background: rgba(82,214,128,.2); border-color: rgba(82,214,128,.5); color:#9ef0ba; font-weight:700; }
+    .badge.inactive { background: rgba(255,106,132,.18); border-color: rgba(255,106,132,.45); color:#ffd0da; font-weight:700; }
+    .text { font-size:.88rem; line-height:1.45; max-height:44px; overflow:hidden; white-space:pre-wrap; transition:max-height .2s ease; }
+    .text.expanded { max-height:420px; }
+    .kv { font-size:.82rem; color:#c8d4ff; }
+    .lifecycle { display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:700; }
+    .lifecycle .days { font-size:1.1rem; color:#7ff0a8; }
+    .lifecycle .state { font-size:1rem; }
+    .lifecycle .state.active { color:#66e895; }
+    .lifecycle .state.inactive { color:#ff9cae; }
+    .card-actions button:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+    .card-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+
+    .pagination { display:flex; justify-content:center; align-items:center; gap:10px; margin:14px 0 4px; }
+
+    .empty {
+      text-align:center;
+      border:1px dashed rgba(132,158,255,.35);
+      border-radius:12px;
+      padding:20px;
+      color:#9fb1ed;
+    }
+
+    @media (max-width:1200px) {
+      .search-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+      .field.keyword { grid-column: span 3; }
+      .stats-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    }
+    @media (max-width:900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { border-right:none; border-bottom:1px solid rgba(170,190,255,.15); }
+      .search-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .field.keyword { grid-column: span 2; }
+      .api-row { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:560px) {
+      .search-grid, .stats-grid { grid-template-columns: 1fr; }
+      .field.keyword { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">SS</div>
+        <div>
+          <h1>SpyScope Pro</h1>
+          <small>Ads Intelligence Suite</small>
+        </div>
+      </div>
+
+      <section class="sidebar-section">
+        <h3>Saved Keywords</h3>
+        <div id="savedKeywords" class="saved-list"></div>
+      </section>
+
+      <section class="sidebar-section">
+        <h3>Search History</h3>
+        <div id="searchHistory" class="history-list"></div>
+      </section>
+    </aside>
+
+    <main class="content">
+      <header class="panel topbar">
+        <div>
+          <h2>Premium Ads Discovery Dashboard</h2>
+          <small style="color:var(--muted)">Meta + TikTok ad intelligence from SearchApi.io</small>
+        </div>
+        <div class="actions">
+          <button id="saveKeywordBtn">Save Keyword</button>
+          <button id="exportCsvBtn" class="btn-accent">Export CSV</button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="api-row">
+          <div class="api-field">
+            <label for="apiKeyInput">SearchApi.io API Key</label>
+            <input id="apiKeyInput" type="password" placeholder="Enter your API key" autocomplete="off" />
+          </div>
+          <button id="toggleApiVisibilityBtn" type="button">Show</button>
+          <button id="saveApiKeyBtn" type="button" class="btn-primary">Save API Key</button>
+        </div>
+        <small style="color:var(--muted)">API key is stored locally in your browser (localStorage) and used directly for search requests.</small>
+      </section>
+
+      <section class="panel">
+        <form id="searchForm" class="search-grid">
+          <div class="field keyword">
+            <label for="keyword">Keyword *</label>
+            <input id="keyword" required placeholder="e.g. skincare serum" />
+          </div>
+          <div class="field">
+            <label for="platform">Platform</label>
+            <select id="platform">
+              <option value="meta_ads">meta_ads</option>
+              <option value="tiktok_ads">tiktok_ads</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="country">Country (ISO)</label>
+            <select id="country">
+              <option value="">All countries</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="language">Language</label>
+            <select id="language">
+              <option value="">All languages</option>
+              <option value="en">English (en)</option>
+              <option value="ar">Arabic (ar)</option>
+              <option value="fr">French (fr)</option>
+              <option value="de">German (de)</option>
+              <option value="es">Spanish (es)</option>
+              <option value="it">Italian (it)</option>
+              <option value="pt">Portuguese (pt)</option>
+              <option value="tr">Turkish (tr)</option>
+              <option value="hi">Hindi (hi)</option>
+              <option value="ur">Urdu (ur)</option>
+              <option value="id">Indonesian (id)</option>
+              <option value="ja">Japanese (ja)</option>
+              <option value="ko">Korean (ko)</option>
+              <option value="zh">Chinese (zh)</option>
+            </select>
+          </div>
+          <div class="field"><label for="startDate">Start Date</label><input id="startDate" type="date" /></div>
+          <div class="field"><label for="endDate">End Date</label><input id="endDate" type="date" /></div>
+          <div class="field">
+            <label for="adFormat">Ad Format</label>
+            <select id="adFormat">
+              <option value="">All</option>
+              <option value="video">Video</option>
+              <option value="image">Image</option>
+              <option value="carousel">Carousel</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="limit">Results Limit</label>
+            <select id="limit">
+              <option>10</option>
+              <option>20</option>
+              <option selected>50</option>
+              <option>100</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sortBy">Sort By</label>
+            <select id="sortBy">
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="most_active">Most active</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="activeOnly">Active Status</label>
+            <select id="activeOnly">
+              <option value="all">All</option>
+              <option value="active">Active only</option>
+            </select>
+          </div>
+          <div class="field" style="align-self:end">
+            <button class="btn-primary" type="submit">Search Ads</button>
+          </div>
+        </form>
+        <div id="status" class="status"></div>
+        <div id="spinner" class="spinner"></div>
+      </section>
+
+      <section class="panel"><div class="stats-grid" id="statsGrid"></div></section>
+
+      <section>
+        <div class="results-header">
+          <h3 style="margin:0">Results</h3>
+          <small id="pageInfo" style="color:var(--muted)"></small>
+        </div>
+        <div id="results" class="results-grid"></div>
+        <div class="pagination">
+          <button id="prevPage">Prev</button>
+          <span id="paginationLabel">Page 1</span>
+          <button id="nextPage">Next</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const DEFAULT_API_KEY = "REPLACE_WITH_SEARCHAPI_KEY";
+    const API_URL = "https://www.searchapi.io/api/v1/search";
+    const STORAGE_KEYS = {
+      apiKey: "spyscope_api_key",
+      saved: "spyscope_saved_keywords",
+      history: "spyscope_search_history"
+    };
+
+    const state = {
+      apiKey: DEFAULT_API_KEY,
+      rawResults: [],
+      results: [],
+      currentPage: 1,
+      pageSize: 12,
+      stats: {},
+      lastQuery: null
+    };
+
+    const dom = {
+      form: document.getElementById("searchForm"),
+      keyword: document.getElementById("keyword"),
+      platform: document.getElementById("platform"),
+      country: document.getElementById("country"),
+      language: document.getElementById("language"),
+      startDate: document.getElementById("startDate"),
+      endDate: document.getElementById("endDate"),
+      adFormat: document.getElementById("adFormat"),
+      limit: document.getElementById("limit"),
+      sortBy: document.getElementById("sortBy"),
+      activeOnly: document.getElementById("activeOnly"),
+      status: document.getElementById("status"),
+      spinner: document.getElementById("spinner"),
+      results: document.getElementById("results"),
+      statsGrid: document.getElementById("statsGrid"),
+      exportCsvBtn: document.getElementById("exportCsvBtn"),
+      saveKeywordBtn: document.getElementById("saveKeywordBtn"),
+      savedKeywords: document.getElementById("savedKeywords"),
+      searchHistory: document.getElementById("searchHistory"),
+      prevPage: document.getElementById("prevPage"),
+      nextPage: document.getElementById("nextPage"),
+      paginationLabel: document.getElementById("paginationLabel"),
+      pageInfo: document.getElementById("pageInfo"),
+      apiKeyInput: document.getElementById("apiKeyInput"),
+      saveApiKeyBtn: document.getElementById("saveApiKeyBtn"),
+      toggleApiVisibilityBtn: document.getElementById("toggleApiVisibilityBtn")
+    };
+
+    function safeGet(obj, path, fallback = "N/A") {
+      try {
+        const value = path.split(".").reduce((acc, key) => acc?.[key], obj);
+        return value ?? fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function parseArray(input) {
+      if (!input) return [];
+      return Array.isArray(input) ? input : [input];
+    }
+
+    function getStorage(key) {
+      try {
+        return JSON.parse(localStorage.getItem(key) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function setStorage(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+
+    function populateCountries() {
+      const current = dom.country.value;
+      const select = dom.country;
+      const prioritized = ["DZ", "US", "GB", "AE", "SA", "EG", "MA", "FR", "DE", "CA"];
+      const labels = new Intl.DisplayNames(["en"], { type: "region" });
+      let regions = [];
+      if (Intl.supportedValuesOf) {
+        try {
+          regions = Intl.supportedValuesOf("region").filter((code) => code.length === 2);
+        } catch {
+          regions = [];
+        }
+      }
+      if (!regions.length) {
+        regions = ["DZ","US","GB","CA","AU","AE","SA","EG","MA","TN","FR","DE","IT","ES","NL","BE","CH","SE","NO","DK","FI","BR","MX","AR","CL","CO","PE","IN","PK","ID","MY","SG","TH","PH","VN","JP","KR","CN","TR","ZA","NG","KE"];
+      }
+      const unique = [...new Set([...prioritized, ...regions])].sort((a,b) => {
+        const pa = prioritized.indexOf(a);
+        const pb = prioritized.indexOf(b);
+        if (pa !== -1 || pb !== -1) return (pa === -1 ? 999 : pa) - (pb === -1 ? 999 : pb);
+        return a.localeCompare(b);
+      });
+      select.innerHTML = '<option value="">All countries</option>' + unique.map((code) => {
+        const name = labels.of(code) || code;
+        return `<option value="${code}">${name} (${code})</option>`;
+      }).join("");
+      if (current) select.value = current;
+      if (!select.value) select.value = "";
+    }
+
+    function loadApiKey() {
+      const saved = localStorage.getItem(STORAGE_KEYS.apiKey);
+      state.apiKey = saved || DEFAULT_API_KEY;
+      dom.apiKeyInput.value = state.apiKey.includes("REPLACE") ? "" : state.apiKey;
+    }
+
+    function saveApiKey() {
+      const value = dom.apiKeyInput.value.trim();
+      if (!value) {
+        setStatus("Please enter an API key.", true);
+        return;
+      }
+      state.apiKey = value;
+      localStorage.setItem(STORAGE_KEYS.apiKey, value);
+      setStatus("API key updated successfully.");
+    }
+
+    function detectMediaType(ad, mediaHint = "") {
+      const explicit = String(firstValue(ad, ["format", "ad_format", "creative_type", "media_type"], "")).toLowerCase();
+      const hint = String(mediaHint || "").toLowerCase();
+      if (hint) return hint;
+      if (explicit.includes("video")) return "video";
+      if (explicit.includes("carousel") || parseArray(ad.carousel_images).length > 1 || parseArray(safeGet(ad, "snapshot.cards", [])).length > 1) return "carousel";
+      if (explicit.includes("image")) return "image";
+      return "image";
+    }
+
+    function extractMediaAssets(raw) {
+      const candidates = [];
+      const seen = new Set();
+
+      function push(kind, value) {
+        const url = normalizeUrl(value);
+        if (!url || url === "N/A") return;
+        if (!/^https?:\/\//i.test(url)) return;
+        if (seen.has(url)) return;
+        seen.add(url);
+        candidates.push({ kind, url });
+      }
+
+      const directVideo = firstValue(raw, [
+        "video", "creative.video_url", "snapshot.videos.0.url", "videos.0.url", "assets.video.url", "media.video.url", "video_url"
+      ], "");
+      const directImage = firstValue(raw, [
+        "image", "creative.image_url", "snapshot.images.0.url", "snapshot.cards.0.image_url", "thumbnail_url", "image_url", "assets.image.url", "media.image.url"
+      ], "");
+      push("video", directVideo);
+      push("image", directImage);
+
+      function walk(node, depth = 0, keyHint = "") {
+        if (!node || depth > 5) return;
+        if (typeof node === "string") {
+          const val = node.trim();
+          if (!/^https?:\/\//i.test(val)) return;
+          const key = keyHint.toLowerCase();
+          const isVideo = /video|mp4|webm|m3u8|mov/.test(key) || /\.(mp4|webm|mov|m3u8)(\?|$)/i.test(val);
+          const isImage = /image|thumb|poster|photo|jpeg|jpg|png|webp|gif/.test(key) || /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(val);
+          push(isVideo ? "video" : (isImage ? "image" : "image"), val);
+          return;
+        }
+        if (Array.isArray(node)) {
+          node.forEach((item) => walk(item, depth + 1, keyHint));
+          return;
+        }
+        if (typeof node === "object") {
+          Object.entries(node).forEach(([k, v]) => walk(v, depth + 1, k));
+        }
+      }
+
+      walk(raw);
+
+      const videoCandidate = candidates.find((c) => c.kind === "video");
+      const imageCandidate = candidates.find((c) => c.kind === "image");
+      const media = videoCandidate || imageCandidate || null;
+
+      return {
+        mediaUrl: media?.url || "",
+        mediaKind: media?.kind || "image",
+        thumbnailUrl: imageCandidate?.url || ""
+      };
+    }
+
+    function firstValue(raw, paths, fallback = "N/A") {
+      for (const path of paths) {
+        const value = safeGet(raw, path, null);
+        if (value !== null && value !== undefined && value !== "") return value;
+      }
+      return fallback;
+    }
+
+    function normalizeUrl(value) {
+      if (!value || value === "N/A") return "N/A";
+      const str = String(value).trim();
+      if (!str) return "N/A";
+      if (/^https?:\/\//i.test(str)) return str;
+      if (str.startsWith("//")) return `https:${str}`;
+      return str;
+    }
+
+    function toCountryText(value) {
+      if (!value) return "N/A";
+      if (Array.isArray(value)) {
+        const flat = value.flatMap((item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object") return item.code || item.country || item.name || "";
+          return "";
+        }).map((v) => String(v).trim()).filter(Boolean);
+        return flat.length ? [...new Set(flat)].join(", ") : "N/A";
+      }
+      return String(value);
+    }
+    function cleanText(value) {
+      const text = String(value ?? "").replace(/\{\{[^}]+\}\}/g, "").replace(/\s+/g, " ").trim();
+      return text;
+    }
+
+    function toNumberLike(value) {
+      if (value === null || value === undefined || value === "") return null;
+      if (typeof value === "number") return value;
+      const str = String(value);
+      const nums = str.replace(/,/g, "").match(/-?\d+(\.\d+)?/g);
+      if (!nums) return null;
+      return Number(nums[nums.length - 1]);
+    }
+
+    function normalizeMetric(value) {
+      const n = toNumberLike(value);
+      if (n === null || Number.isNaN(n)) return "N/A";
+      return n.toLocaleString();
+    }
+
+    function daysBetween(start, end) {
+      const s = Date.parse(start);
+      if (Number.isNaN(s)) return null;
+      const e = Date.parse(end);
+      const to = Number.isNaN(e) ? Date.now() : e;
+      const days = Math.max(1, Math.ceil((to - s) / 86400000));
+      return days;
+    }
+
+
+    function extractAdsFromPayload(payload) {
+      const directArrays = [
+        payload?.ads,
+        payload?.ad_results,
+        payload?.results,
+        payload?.data,
+        payload?.search_results?.ads,
+        payload?.search_results?.results,
+        payload?.ad_library_results,
+        payload?.inline_ads
+      ].filter(Array.isArray);
+
+      const discovered = [];
+      const visited = new Set();
+      function walk(node, depth = 0) {
+        if (!node || depth > 5) return;
+        if (Array.isArray(node)) {
+          if (!visited.has(node)) {
+            visited.add(node);
+            const hasAdShape = node.some((item) => item && typeof item === "object" && (
+              "ad_id" in item || "id" in item || "ad_archive_id" in item || "snapshot" in item || "creative" in item || "ad_creative_body" in item || "page_name" in item
+            ));
+            if (hasAdShape) discovered.push(node);
+          }
+          node.forEach((item) => walk(item, depth + 1));
+          return;
+        }
+        if (typeof node === "object") {
+          Object.values(node).forEach((val) => walk(val, depth + 1));
+        }
+      }
+      walk(payload);
+
+      const merged = [...directArrays, ...discovered].flat();
+      return merged.filter((item) => item && typeof item === "object");
+    }
+
+    function normalizeAd(raw, platform) {
+      const adId = String(firstValue(raw, [
+        "ad_id", "id", "ad_archive_id", "archive_id", "snapshot.ad_id", "snapshot.id", "ad.id", "result_id"
+      ], crypto.randomUUID()));
+
+      const title = cleanText(firstValue(raw, [
+        "ad_title", "title", "creative.title", "snapshot.title", "ad.title", "snapshot.page_name", "page_name", "headline"
+      ], ""));
+
+      const text = cleanText(firstValue(raw, [
+        "ad_text", "text", "creative.body", "creative.caption", "snapshot.body.text", "snapshot.caption", "ad_creative_body", "message", "description"
+      ], ""));
+
+      const advertiserName = String(firstValue(raw, [
+        "advertiser.name", "advertiser_name", "page_name", "snapshot.page_name", "ad.advertiser_name"
+      ], "N/A"));
+
+      const advertiserLink = normalizeUrl(firstValue(raw, [
+        "advertiser.page_link", "page_link", "advertiser.url", "advertiser_link", "page_url", "snapshot.page_profile_uri"
+      ], "N/A"));
+
+      const mediaAssets = extractMediaAssets(raw);
+
+      const startDate = firstValue(raw, ["start_date", "ad.start_date", "snapshot.start_date", "ad_delivery_start_time"], "N/A");
+      const endDate = firstValue(raw, ["end_date", "ad.end_date", "snapshot.end_date", "ad_delivery_stop_time"], "N/A");
+
+      const spend = normalizeMetric(firstValue(raw, ["estimated_spend", "spend", "spend_range", "insights.spend", "spend.upper_bound", "spend.lower_bound", "spend.min", "spend.max"], "N/A"));
+      const impressions = normalizeMetric(firstValue(raw, ["estimated_impressions", "impressions", "impressions_range", "insights.impressions", "impressions.upper_bound", "impressions.lower_bound", "reach"], "N/A"));
+
+      const cta = firstValue(raw, ["cta", "call_to_action", "snapshot.cta_text", "cta_type", "snapshot.cards.0.cta_text"], "N/A");
+
+      const landingPage = normalizeUrl(firstValue(raw, [
+        "landing_page", "url", "destination_url", "final_url", "snapshot.link_url", "snapshot.cards.0.link_url", "call_to_action.url", "cta_url"
+      ], "N/A"));
+
+      let libraryLink = normalizeUrl(firstValue(raw, [
+        "ad_library_link", "library_url", "snapshot.ad_library_url", "ad_archive_url", "ad_archive_link"
+      ], "N/A"));
+      if (libraryLink === "N/A" && /^\d+$/.test(adId)) {
+        libraryLink = platform === "tiktok_ads"
+          ? `https://library.tiktok.com/ads/detail/${adId}`
+          : `https://www.facebook.com/ads/library/?id=${adId}`;
+      }
+
+      const rawStatus = String(firstValue(raw, ["status", "ad_status", "delivery_status", "snapshot.status"], "unknown")).toLowerCase();
+      const isActive = firstValue(raw, ["is_active", "active"], null);
+      const status = isActive === true ? "active" : isActive === false ? "inactive" : (rawStatus.includes("active") ? "active" : rawStatus.includes("inactive") ? "inactive" : "unknown");
+
+      const countries = toCountryText(firstValue(raw, ["country_targeting", "countries", "targeted_countries", "snapshot.country", "country_codes", "targeting.countries"], "N/A"));
+      const resolvedTitle = title || (text ? text.slice(0, 70) : `Ad ${adId.slice(0, 8)}`);
+      const resolvedText = text || cleanText(firstValue(raw, ["body", "description"], "N/A"));
+      const daysLive = daysBetween(startDate, status === "active" ? null : endDate);
+
+      return {
+        adId,
+        title: resolvedTitle,
+        text: resolvedText,
+        advertiserName,
+        advertiserLink,
+        mediaUrl: mediaAssets.mediaUrl,
+        thumbnailUrl: mediaAssets.thumbnailUrl,
+        startDate,
+        endDate,
+        countries,
+        estimatedSpend: spend ?? "N/A",
+        estimatedImpressions: impressions ?? "N/A",
+        adIdRaw: adId,
+        platform,
+        cta,
+        status,
+        daysLive: daysLive ?? "N/A",
+        landingPage,
+        libraryLink,
+        format: detectMediaType(raw, mediaAssets.mediaKind)
+      };
+    }
+
+    function uniqueByAdId(list) {
+      const map = new Map();
+      list.forEach((item) => {
+        if (!map.has(item.adId)) map.set(item.adId, item);
+      });
+      return [...map.values()];
+    }
+
+    function setLoading(on) {
+      dom.spinner.style.display = on ? "block" : "none";
+    }
+
+    function setStatus(message, isError = false) {
+      dom.status.textContent = message;
+      dom.status.classList.toggle("error", isError);
+    }
+
+    function getEngineCandidates(platformValue) {
+      const map = {
+        meta_ads: ["meta_ads", "facebook_ads", "meta_ad_library", "meta_ads_library", "facebook_ad_library"],
+        tiktok_ads: ["tiktok_ads", "tiktok_ad_library", "tiktok_ads_library", "tiktok"]
+      };
+      return map[platformValue] || [platformValue];
+    }
+
+    function buildQueryParams(engineOverride) {
+
+      const keyword = dom.keyword.value.trim();
+      if (!keyword) throw new Error("Keyword is required.");
+      if (!state.apiKey || state.apiKey.includes("REPLACE")) {
+        throw new Error("Please set your SearchApi.io API key from the API Key panel.");
+      }
+
+      const params = new URLSearchParams({
+        engine: engineOverride || dom.platform.value,
+        q: keyword,
+        api_key: state.apiKey,
+        limit: dom.limit.value
+      });
+
+      const optionalMap = {
+        country: dom.country.value,
+        language: dom.language.value,
+        start_date: dom.startDate.value,
+        end_date: dom.endDate.value
+      };
+
+      Object.entries(optionalMap).forEach(([key, value]) => {
+        if (value) params.set(key, value);
+      });
+
+      return params;
+    }
+
+    function sortResults(data) {
+      const sortBy = dom.sortBy.value;
+      const parseTime = (v) => (v && v !== "N/A") ? new Date(v).getTime() : 0;
+      data.sort((a, b) => {
+        if (sortBy === "most_active") {
+          const sa = a.status === "active" ? 1 : 0;
+          const sb = b.status === "active" ? 1 : 0;
+          if (sa !== sb) return sb - sa;
+          return parseTime(b.startDate) - parseTime(a.startDate);
+        }
+        return sortBy === "oldest"
+          ? parseTime(a.startDate) - parseTime(b.startDate)
+          : parseTime(b.startDate) - parseTime(a.startDate);
+      });
+    }
+
+    function applyFilters(data) {
+      const format = dom.adFormat.value;
+      const activeOnly = dom.activeOnly.value === "active";
+      const q = dom.keyword.value.trim().toLowerCase();
+      return data.filter((ad) => {
+        const formatMatch = !format || ad.format === format;
+        const activeMatch = !activeOnly || ad.status === "active";
+        const haystack = `${ad.title} ${ad.text} ${ad.advertiserName}`.toLowerCase();
+        const keywordMatch = !q || haystack.includes(q);
+        return formatMatch && activeMatch && keywordMatch;
+      });
+    }
+
+    function computeStats(data) {
+      const activeCount = data.filter((ad) => ad.status === "active").length;
+      const videoCount = data.filter((ad) => ad.format === "video").length;
+      const imageCount = data.filter((ad) => ad.format === "image").length;
+      const spends = data.map((ad) => Number(ad.estimatedSpend)).filter((n) => !Number.isNaN(n));
+      const avgSpend = spends.length ? (spends.reduce((a, b) => a + b, 0) / spends.length).toFixed(2) : "N/A";
+
+      const countryDist = {};
+      data.forEach((ad) => {
+        if (ad.countries !== "N/A") {
+          ad.countries.split(",").map((c) => c.trim()).filter(Boolean).forEach((country) => {
+            countryDist[country] = (countryDist[country] || 0) + 1;
+          });
+        }
+      });
+      const topCountries = Object.entries(countryDist)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([country, count]) => `${country} (${count})`)
+        .join(", ") || "N/A";
+
+      state.stats = { total: data.length, activeCount, videoCount, imageCount, avgSpend, topCountries };
+
+      dom.statsGrid.innerHTML = [
+        ["Total results", state.stats.total],
+        ["Active ads", state.stats.activeCount],
+        ["Video ads", state.stats.videoCount],
+        ["Image ads", state.stats.imageCount],
+        ["Avg. est. spend", state.stats.avgSpend]
+      ].map(([label, value]) => `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div></div>`).join("");
+
+      const countryNode = document.createElement("div");
+      countryNode.className = "stat";
+      countryNode.style.gridColumn = "1 / -1";
+      countryNode.innerHTML = `<div class="label">Countries distribution (top)</div><div class="value" style="font-size:1rem">${state.stats.topCountries}</div>`;
+      dom.statsGrid.appendChild(countryNode);
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function renderMedia(ad) {
+      if (!ad.mediaUrl && !ad.thumbnailUrl) return `<div style="color:var(--muted)">No preview available</div>`;
+      if (ad.format === "video") {
+        if (ad.mediaUrl) {
+          return `<video controls muted playsinline preload="metadata" poster="${escapeHtml(ad.thumbnailUrl || "")}" src="${escapeHtml(ad.mediaUrl)}"></video>`;
+        }
+        if (ad.thumbnailUrl) {
+          return `<img loading="lazy" src="${escapeHtml(ad.thumbnailUrl)}" alt="Video thumbnail" />`;
+        }
+      }
+      return `<img loading="lazy" src="${escapeHtml(ad.mediaUrl || ad.thumbnailUrl)}" alt="Ad creative" />`;
+    }
+
+    function paginate() {
+      const totalPages = Math.max(1, Math.ceil(state.results.length / state.pageSize));
+      if (state.currentPage > totalPages) state.currentPage = totalPages;
+
+      const start = (state.currentPage - 1) * state.pageSize;
+      const pageData = state.results.slice(start, start + state.pageSize);
+
+      dom.pageInfo.textContent = `${state.results.length} ads found`;
+      dom.paginationLabel.textContent = `Page ${state.currentPage} / ${totalPages}`;
+      dom.prevPage.disabled = state.currentPage <= 1;
+      dom.nextPage.disabled = state.currentPage >= totalPages;
+
+      return pageData;
+    }
+
+    function renderResults() {
+      const pageData = paginate();
+      if (!pageData.length) {
+        dom.results.innerHTML = `<div class="empty">No ads match your current filters.</div>`;
+        return;
+      }
+
+      dom.results.innerHTML = pageData.map((ad) => `
+        <article class="ad-card" data-ad-id="${escapeHtml(ad.adId)}">
+          <div class="media-wrap">${renderMedia(ad)}</div>
+          <div class="meta">
+            <div class="title">${escapeHtml(ad.title)}</div>
+            <div class="badges">
+              <span class="badge">${escapeHtml(ad.platform)}</span>
+              <span class="badge">${escapeHtml(ad.format)}</span>
+              <span class="badge ${escapeHtml(ad.status)}">${escapeHtml(ad.status)}</span>
+            </div>
+            <div class="text">${escapeHtml(ad.text)}</div>
+            <div class="kv" style="font-size:.95rem;color:#dce5ff">Advertiser: ${escapeHtml(ad.advertiserName)}</div>
+            <div class="lifecycle"><span class="state ${escapeHtml(ad.status)}">${ad.status === "active" ? "ACTIVE" : ad.status.toUpperCase()}</span><span class="days">${escapeHtml(ad.daysLive)} days</span></div>
+            <div class="kv">Start: ${escapeHtml(ad.startDate)} · End: ${escapeHtml(ad.endDate)}</div>
+            <div class="kv">Countries: ${escapeHtml(ad.countries)} · Spend: ${escapeHtml(ad.estimatedSpend)} · Impr: ${escapeHtml(ad.estimatedImpressions)}</div>
+            <div class="kv">CTA: ${escapeHtml(ad.cta)} · Ad ID: ${escapeHtml(ad.adId)}</div>
+            <div class="card-actions">
+              <button data-action="toggle">Expand / Collapse</button>
+              <button data-action="copy">Copy Ad Text</button>
+              <button data-action="advertiser" ${ad.advertiserLink === "N/A" ? "disabled" : ""}>Open Advertiser</button>
+              <button data-action="landing" ${ad.landingPage === "N/A" ? "disabled" : ""}>Landing Page</button>
+              <button data-action="library" ${ad.libraryLink === "N/A" ? "disabled" : ""}>Ad Library Link</button>
+            </div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function toCsv(results) {
+      const columns = [
+        "ad_title", "ad_text", "advertiser_name", "advertiser_page_link", "ad_creative", "ad_start_date", "ad_end_date", "days_live",
+        "country_targeting", "estimated_spend", "estimated_impressions", "ad_id", "platform", "cta", "ad_status", "landing_page_link", "ad_library_link"
+      ];
+      const normalizeCell = (value) => String(value ?? "N/A").replace(/\r?\n|\r/g, " ").trim();
+      const esc = (value) => `"${normalizeCell(value).replaceAll('"', '""')}"`;
+      const rows = results.map((ad) => [
+        ad.title, ad.text, ad.advertiserName, ad.advertiserLink, ad.mediaUrl || ad.thumbnailUrl, ad.startDate, ad.endDate, ad.daysLive,
+        ad.countries, ad.estimatedSpend, ad.estimatedImpressions, ad.adId, ad.platform, ad.cta, ad.status, ad.landingPage, ad.libraryLink
+      ].map(esc).join(","));
+      return "\uFEFF" + [columns.join(","), ...rows].join("\r\n");
+    }
+
+    function downloadCsv() {
+      if (!state.results.length) return setStatus("No results to export.", true);
+      const blob = new Blob([toCsv(state.results)], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `spyscope_export_${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus("CSV exported successfully.");
+    }
+
+    function renderSavedKeywords() {
+      const items = getStorage(STORAGE_KEYS.saved);
+      dom.savedKeywords.innerHTML = items.length ? items.map((word, i) => `
+        <div class="saved-item">
+          <button class="chip-btn" data-search-word="${escapeHtml(word)}">${escapeHtml(word)}</button>
+          <button class="chip-delete" data-delete-word="${i}">Delete</button>
+        </div>
+      `).join("") : `<div class="empty">No saved keywords.</div>`;
+    }
+
+    function renderHistory() {
+      const history = getStorage(STORAGE_KEYS.history);
+      dom.searchHistory.innerHTML = history.length ? history.map((item) => `
+        <div class="history-item">
+          <button class="chip-btn" data-history='${escapeHtml(JSON.stringify(item))}'>${escapeHtml(item.keyword)} · ${escapeHtml(item.platform)}</button>
+          <small style="color:var(--muted)">${new Date(item.timestamp).toLocaleDateString()}</small>
+        </div>
+      `).join("") : `<div class="empty">No recent searches.</div>`;
+    }
+
+    function saveKeyword() {
+      const word = dom.keyword.value.trim();
+      if (!word) return setStatus("Enter a keyword first.", true);
+      const items = getStorage(STORAGE_KEYS.saved);
+      if (!items.includes(word)) {
+        items.unshift(word);
+        setStorage(STORAGE_KEYS.saved, items.slice(0, 25));
+      }
+      renderSavedKeywords();
+      setStatus("Keyword saved.");
+    }
+
+    function addHistory(query) {
+      const history = getStorage(STORAGE_KEYS.history);
+      history.unshift({ ...query, timestamp: Date.now() });
+      setStorage(STORAGE_KEYS.history, history.slice(0, 10));
+      renderHistory();
+    }
+
+    function refreshDisplayedResults() {
+      const filtered = applyFilters([...state.rawResults]);
+      sortResults(filtered);
+      state.results = filtered;
+      state.currentPage = 1;
+      computeStats(state.results);
+      renderResults();
+    }
+
+    async function searchAds() {
+      try {
+        setLoading(true);
+        setStatus(`Searching ads${dom.country.value === "DZ" ? " in Algeria (DZ)" : ""}...`);
+
+        state.lastQuery = {
+          keyword: dom.keyword.value.trim(),
+          platform: dom.platform.value,
+          country: dom.country.value,
+          language: dom.language.value
+        };
+
+        const engineCandidates = getEngineCandidates(dom.platform.value);
+        let payload = null;
+        let lastError = null;
+        let usedEngine = dom.platform.value;
+
+        for (const engine of engineCandidates) {
+          const params = buildQueryParams(engine);
+          const response = await fetch(`${API_URL}?${params.toString()}`);
+          payload = await response.json();
+
+          if (response.ok) {
+            usedEngine = engine;
+            lastError = null;
+            break;
+          }
+
+          const errText = payload?.error || payload?.message || `HTTP ${response.status}`;
+          if (/quota|limit|credits|429/i.test(errText)) {
+            throw new Error(`Quota exceeded: ${errText}`);
+          }
+
+          if (/unsupported engine/i.test(errText) && engine !== engineCandidates[engineCandidates.length - 1]) {
+            lastError = `Search API error: ${errText}`;
+            continue;
+          }
+
+          throw new Error(`Search API error: ${errText}`);
+        }
+
+        if (lastError) throw new Error(lastError);
+
+        const rawAds = extractAdsFromPayload(payload);
+        state.rawResults = uniqueByAdId(rawAds.map((ad) => normalizeAd(ad, dom.platform.value)));
+
+        refreshDisplayedResults();
+        addHistory(state.lastQuery);
+        const fallbackMsg = usedEngine !== dom.platform.value ? ` (engine fallback: ${usedEngine})` : "";
+        setStatus(`Loaded ${state.results.length} ads from ${rawAds.length} extracted records.${fallbackMsg}`);
+      } catch (error) {
+        console.error(error);
+        state.rawResults = [];
+        state.results = [];
+        computeStats([]);
+        renderResults();
+        setStatus(error.message || "Search failed.", true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function bindEvents() {
+      dom.form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        searchAds();
+      });
+
+      dom.exportCsvBtn.addEventListener("click", downloadCsv);
+      dom.saveKeywordBtn.addEventListener("click", saveKeyword);
+      dom.saveApiKeyBtn.addEventListener("click", saveApiKey);
+      dom.toggleApiVisibilityBtn.addEventListener("click", () => {
+        const isPwd = dom.apiKeyInput.type === "password";
+        dom.apiKeyInput.type = isPwd ? "text" : "password";
+        dom.toggleApiVisibilityBtn.textContent = isPwd ? "Hide" : "Show";
+      });
+
+      dom.prevPage.addEventListener("click", () => {
+        if (state.currentPage > 1) {
+          state.currentPage -= 1;
+          renderResults();
+        }
+      });
+      dom.nextPage.addEventListener("click", () => {
+        const maxPage = Math.max(1, Math.ceil(state.results.length / state.pageSize));
+        if (state.currentPage < maxPage) {
+          state.currentPage += 1;
+          renderResults();
+        }
+      });
+
+      [dom.adFormat, dom.activeOnly, dom.sortBy].forEach((node) => {
+        node.addEventListener("change", () => {
+          if (!state.rawResults.length) return;
+          refreshDisplayedResults();
+        });
+      });
+
+      dom.results.addEventListener("click", async (e) => {
+        const button = e.target.closest("button[data-action]");
+        if (!button) return;
+        const card = button.closest(".ad-card");
+        if (!card) return;
+        const ad = state.results.find((item) => item.adId === card.dataset.adId);
+        if (!ad) return;
+
+        const action = button.dataset.action;
+        if (action === "toggle") {
+          card.querySelector(".text").classList.toggle("expanded");
+        } else if (action === "copy") {
+          try {
+            await navigator.clipboard.writeText(ad.text || "");
+            setStatus("Ad text copied.");
+          } catch {
+            setStatus("Copy failed in this browser context.", true);
+          }
+        } else if (action === "advertiser") {
+          if (ad.advertiserLink && ad.advertiserLink !== "N/A") {
+            window.open(ad.advertiserLink, "_blank", "noopener");
+          } else {
+            setStatus("Advertiser link not available for this ad.", true);
+          }
+        } else if (action === "landing") {
+          if (ad.landingPage && ad.landingPage !== "N/A") {
+            window.open(ad.landingPage, "_blank", "noopener");
+          } else {
+            setStatus("Landing page link not available for this ad.", true);
+          }
+        } else if (action === "library") {
+          if (ad.libraryLink && ad.libraryLink !== "N/A") {
+            window.open(ad.libraryLink, "_blank", "noopener");
+          } else {
+            setStatus("Ad library link not available for this ad.", true);
+          }
+        }
+      });
+
+      dom.savedKeywords.addEventListener("click", (e) => {
+        const searchButton = e.target.closest("[data-search-word]");
+        if (searchButton) {
+          dom.keyword.value = searchButton.dataset.searchWord;
+          searchAds();
+          return;
+        }
+
+        const deleteButton = e.target.closest("[data-delete-word]");
+        if (deleteButton) {
+          const index = Number(deleteButton.dataset.deleteWord);
+          const words = getStorage(STORAGE_KEYS.saved);
+          words.splice(index, 1);
+          setStorage(STORAGE_KEYS.saved, words);
+          renderSavedKeywords();
+        }
+      });
+
+      dom.searchHistory.addEventListener("click", (e) => {
+        const button = e.target.closest("[data-history]");
+        if (!button) return;
+
+        const item = JSON.parse(button.dataset.history);
+        dom.keyword.value = item.keyword || "";
+        dom.platform.value = item.platform || "meta_ads";
+        dom.country.value = item.country || "";
+        dom.language.value = item.language || "";
+        searchAds();
+      });
+    }
+
+    function init() {
+      loadApiKey();
+      populateCountries();
+      renderSavedKeywords();
+      renderHistory();
+      computeStats([]);
+      renderResults();
+      bindEvents();
+      setStatus("Ready. Set your API key then enter a keyword to search.");
+    }
+
+    init();
+  </script>
+</body>
+</html>
